@@ -121,6 +121,9 @@ create or alter procedure a2v10sample.[Document.Delete]
 as
 begin
 	set nocount on;
+	begin tran
+	delete from a2v10sample.DocDetails where Document = @Id;
 	delete from a2v10sample.Documents where Id=@Id;
+	commit tran;
 end
 go

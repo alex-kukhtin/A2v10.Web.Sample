@@ -65,6 +65,40 @@
     <Content Include="App_application\sample\document\waybill\edit.template.js" />
     <Content Include="App_application\sample\document\waybill\index.template.js" />
     <Content Include="App_application\sample\_localization\sample.uk.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="A2v10.Web.Mvc, Version=10.0.7650.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\A2v10.Web.Runtime.10.0.7650\lib\net461\A2v10.Web.Mvc.dll</HintPath>
+    </Reference>
+    <Reference Include="A2v10.Workflow, Version=10.0.7650.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\A2v10.Web.Runtime.10.0.7650\lib\net461\A2v10.Workflow.dll</HintPath>
+    </Reference>
+    <Reference Include="A2v10.Xaml, Version=10.0.7650.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\A2v10.Web.Runtime.10.0.7650\lib\net461\A2v10.Xaml.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Activities" />
+    <Reference Include="System.Xaml" />
+  </ItemGroup>
+  <ItemGroup>
+    <TypeScriptCompile Include="App_application\%40types\platform.d.ts" />
+    <TypeScriptCompile Include="App_application\sample\catalog\agent\edit.template.ts" />
+    <TypeScriptCompile Include="App_application\sample\catalog\agent\index.template.ts" />
+    <TypeScriptCompile Include="App_application\sample\catalog\product\edit.template.ts" />
+    <TypeScriptCompile Include="App_application\sample\document\document.d.ts" />
+    <TypeScriptCompile Include="App_application\sample\document\waybill\edit.template.ts" />
+    <TypeScriptCompile Include="App_application\sample\document\waybill\index.template.ts" />
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{4A0DDDB5-7A95-4FBF-97CC-616D07737A77}" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_application\sample\catalog\agent\model.json" />
+    <Content Include="App_application\sample\document\waybill\model.json" />
+    <Content Include="App_application\sample\catalog\product\model.json" />
+    <Content Include="App_application\sample\sql.json" />
     <Content Include="css\fonts\A2v10.svg" />
     <Content Include="css\site.css" />
     <Content Include="css\site.min.css" />
@@ -88,66 +122,16 @@
     <Content Include="scripts\vue.min.js" />
     <Content Include="tools\BuildSql.exe" />
     <Content Include="tools\Newtonsoft.Json.dll" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <Reference Include="A2v10.Web.Mvc, Version=10.0.7650.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\A2v10.Web.Runtime.10.0.7650\lib\net461\A2v10.Web.Mvc.dll</HintPath>
-    </Reference>
-    <Reference Include="A2v10.Workflow, Version=10.0.7650.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\A2v10.Web.Runtime.10.0.7650\lib\net461\A2v10.Workflow.dll</HintPath>
-    </Reference>
-    <Reference Include="A2v10.Xaml, Version=10.0.7650.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\A2v10.Web.Runtime.10.0.7650\lib\net461\A2v10.Xaml.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Activities" />
-    <Reference Include="System.Xaml" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="Web.config.sample" />
-  </ItemGroup>
-  <ItemGroup>
     <Content Include="tsconfig.json" />
-  </ItemGroup>
-  <ItemGroup>
     <Content Include="css\fonts\A2v10.woff2" />
-  </ItemGroup>
-  <ItemGroup>
     <Content Include="css\fonts\A2v10.woff" />
-  </ItemGroup>
-  <ItemGroup>
     <Content Include="css\fonts\A2v10.ttf" />
-  </ItemGroup>
-  <ItemGroup>
     <Content Include="css\fonts\A2v10.eot" />
-  </ItemGroup>
-  <ItemGroup>
-    <TypeScriptCompile Include="App_application\%40types\platform.d.ts" />
-    <TypeScriptCompile Include="App_application\sample\catalog\agent\edit.template.ts" />
-    <TypeScriptCompile Include="App_application\sample\catalog\agent\index.template.ts" />
-    <TypeScriptCompile Include="App_application\sample\catalog\product\edit.template.ts" />
-    <TypeScriptCompile Include="App_application\sample\document\document.d.ts" />
-    <TypeScriptCompile Include="App_application\sample\document\waybill\edit.template.ts" />
-    <TypeScriptCompile Include="App_application\sample\document\waybill\index.template.ts" />
-  </ItemGroup>
-  <ItemGroup>
-    <Service Include="{4A0DDDB5-7A95-4FBF-97CC-616D07737A77}" />
-  </ItemGroup>
-  <ItemGroup>
     <Content Include="App_application\%40schemas\sql-json-schema.json" />
-  </ItemGroup>
-  <ItemGroup>
     <Content Include="App_application\%40schemas\model-json-schema.json" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="App_application\sample\catalog\agent\model.json" />
-    <Content Include="App_application\sample\document\waybill\model.json" />
-    <Content Include="App_application\sample\catalog\product\model.json" />
-    <Content Include="App_application\sample\sql.json" />
     <None Include="packages.config" />
     <None Include="Web.config" />
+    <Content Include="Web.config.sample" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="App_application\sample\catalog\agent\browse.dialog.xaml">

@@ -1,6 +1,6 @@
 ﻿/*
 version: 10.0.0001
-generated: 09.04.2020 21:12:07
+generated: 09.04.2020 22:57:14
 */
 
 set nocount on;
@@ -677,6 +677,9 @@ create or alter procedure a2v10sample.[Document.Delete]
 as
 begin
 	set nocount on;
+	begin tran
+	delete from a2v10sample.DocDetails where Document = @Id;
 	delete from a2v10sample.Documents where Id=@Id;
+	commit tran;
 end
 go
