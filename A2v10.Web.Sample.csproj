@@ -58,6 +58,7 @@
     <Content Include="App_application\sample\%40sql\ui.sql" />
     <Content Include="App_application\sample\catalog\agent\edit.template.js" />
     <Content Include="App_application\sample\catalog\agent\index.template.js" />
+    <Content Include="App_application\sample\catalog\agent\model.sql" />
     <Content Include="App_application\sample\document\model.sql" />
     <Content Include="App_application\sample\document\waybill\edit.template.js" />
     <Content Include="App_application\sample\document\waybill\index.template.js" />
@@ -140,6 +141,7 @@
   <ItemGroup>
     <Content Include="App_application\sample\catalog\agent\model.json" />
     <Content Include="App_application\sample\document\waybill\model.json" />
+    <Content Include="App_application\sample\catalog\product\model.json" />
     <None Include="packages.config" />
     <None Include="Web.config" />
   </ItemGroup>
@@ -157,6 +159,12 @@
       <SubType>Designer</SubType>
     </Content>
     <Content Include="App_application\sample\document\waybill\index.view.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_application\sample\catalog\agent\index.view.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Content>

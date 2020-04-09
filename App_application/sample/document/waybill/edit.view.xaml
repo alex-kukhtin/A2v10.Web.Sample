@@ -15,29 +15,31 @@
 	</Page.Toolbar>
 	<Grid>
 		<Header Grid.Row="1">@[Waybill]</Header>
-		<TextBox Label="@[DocNo]" Value="{Bind Document.No}"/>
-		<DatePicker Label="@[Date]" Value="{Bind Document.Date, DataType=Date}"/>
-		<Selector Value="{Bind Document.Agent}">
+		<TextBox Label="@[No]" Value="{Bind Document.No}" Width="20rem"/>
+		<DatePicker Label="@[Date]" Value="{Bind Document.Date, DataType=Date}" Width="20rem"/>
+		<Selector Value="{Bind Document.Agent}" Label="@[Agent]" Width="40rem">
 			<Selector.AddOns>
 				<Hyperlink Icon="Search" Command="{BindCmd Browse, Argument={Bind Document.Agent}, Url='/catalog/agent/browse'}"/>
 			</Selector.AddOns>
 		</Selector>
-		<Toolbar>
-			<Button Icon="Plus" Content="@[AddRow]" Command="{BindCmd Append, Argument={Bind Document.Rows}}"/>
+		<Toolbar Style="Transparent">
+			<Button Icon="Plus" Content="@[Row.Add]" Command="{BindCmd Append, Argument={Bind Document.Rows}}"/>
 		</Toolbar>
 		<Table ItemsSource="{Bind Document.Rows}" GridLines="Both">
 			<Table.Columns>
 				<TableColumn Fit="True"/>
-				<TableColumn Width="300"/>
-				<TableColumn Fit="True"/>
-				<TableColumn Fit="True"/>
 				<TableColumn Fit="True"/>
 				<TableColumn Width="300"/>
+				<TableColumn Fit="True" Width="70"/>
+				<TableColumn Fit="True" Width="70"/>
+				<TableColumn Fit="True" Width="70"/>
+				<TableColumn Width="200"/>
 				<TableColumn Fit="True"/>
 			</Table.Columns>
 			<Table.Header>
 				<TableRow>
-					<TableCell Content="@[Number]"/>
+					<TableCell Content="@[Order]"/>
+					<TableCell Content="@[Article]"/>
 					<TableCell Content="@[Product]"/>
 					<TableCell Content="@[Qty]"/>
 					<TableCell Content="@[Price]"/>
@@ -47,7 +49,8 @@
 				</TableRow>
 			</Table.Header>
 			<TableRow>
-				<TableCell Content="{Bind $rowNo}"/>
+				<TableCell Content="{Bind $RowNo}"/>
+				<TextBox Value="{Bind Product.Article}"/>
 				<TableCell>
 					<Selector>
 						<Selector.AddOns>
@@ -61,6 +64,14 @@
 				<TextBox Value="{Bind Memo}"/>
 				<Hyperlink Command="{BindCmd Remove, Argument={Bind}}" Icon="Delete"/>
 			</TableRow>
+			<Table.Footer>
+				<TableRow>
+					<TableCell ColSpan="4"/>
+					<TableCell>@[Total]</TableCell>
+					<TableCell Content="{Bind Document.Sum, DataType=Currency}" Align="Right" Bold="True"/>
+					<TableCell ColSpan="2"/>
+				</TableRow>
+			</Table.Footer>
 		</Table>
 		<TextBox Label="@[Memo]" Multiline="True" Rows="4" Value="{Bind Document.Memo}"/>
 	</Grid>

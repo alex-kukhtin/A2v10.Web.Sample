@@ -1,7 +1,6 @@
 ﻿
 const template: Template = {
 	commands: {
-
 	}
 }
 

@@ -4,3 +4,15 @@
 @Units=Одиниці виміру
 @Waybills=Прибуткові накладні
 @Waybill=Прибуткова накладна
+@Agents=Контрагенти
+@Agent=Контрагент
+@Product=Товар
+@Products=Товари
+@Phone=Телефон
+@EMail=e-mail
+@Article=Артикул
+@Total=Загалом
+@Row.Add=Додати рядок
+@Error.Empty=Поле не може бути порожнім
+@Error.EMail=Неправильний е-mail
+@Order=№

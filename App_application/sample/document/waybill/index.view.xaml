@@ -2,25 +2,27 @@
 	<Page.CollectionView>
 		<CollectionView RunAt="ServerUrl" ItemsSource="{Bind Documents}"/>
 	</Page.CollectionView>
-	<FullHeightPanel>
+	<Page.Toolbar>
 		<Toolbar>
 			<Button Content="@[Create]" Icon="Plus" Command="{BindCmd Create, Url='/document/waybill/edit'}"/>
 			<Separator />
 			<Button Content="@[Reload]" Icon="Reload" Command="{BindCmd Reload}"/>
 		</Toolbar>
-		<DataGrid FullHeightPanel.Fill="True" ItemsSource="{Bind Parent.ItemsSource}">
-			<DataGridColumn Header="Id" Content="{Bind Id}" Fit="True"/>
-			<DataGridColumn Header="@[Date]" Content="{Bind Date, DataType=Date}" Fit="True"/>
-			<DataGridColumn Header="@[No]" Content="{Bind No}" Fit="True"/>
-			<DataGridColumn Header="@[Sum]" Content="{Bind Sum, DataType=Currency}" Fit="True" Align="Right"/>
-			<DataGridColumn Header="@[Memo]" Content="{Bind Memo}"/>
-			<DataGridColumn>
-				<CommandBar Visibility="Hover">
-					<Button Icon="ArrowOpen" Command="{BindCmd Open, Url='/document/waybill/edit', Argument={Bind}}"/>
-					<Button Icon="Delete" Command="{BindCmd DbRemove, Argument={Bind}}"/>
-				</CommandBar>
-			</DataGridColumn>
-		</DataGrid>
+	</Page.Toolbar>
+	<DataGrid ItemsSource="{Bind Parent.ItemsSource}" GridLines="Horizontal" FixedHeader="True">
+		<DataGridColumn Header="Id" Content="{Bind Id}" Fit="True" Wrap="NoWrap"/>
+		<DataGridColumn Header="@[Date]" Content="{Bind Date, DataType=Date}" Fit="True" Wrap="NoWrap"/>
+		<DataGridColumn Header="@[No]" Content="{Bind No}" Fit="True" Wrap="NoWrap"/>
+		<DataGridColumn Header="@[Sum]" Content="{Bind Sum, DataType=Currency}" Fit="True" Align="Right" Wrap="NoWrap"/>
+		<DataGridColumn Header="@[Memo]" Content="{Bind Memo}"/>
+		<DataGridColumn Fit="True" Wrap="NoWrap">
+			<CommandBar Visibility="Hover">
+				<Button Icon="ArrowOpen" Command="{BindCmd Open, Url='/document/waybill/edit', Argument={Bind}}"/>
+				<Button Icon="Delete" Command="{BindCmd DbRemove, Argument={Bind}}"/>
+			</CommandBar>
+		</DataGridColumn>
+	</DataGrid>
+	<Page.Pager>
 		<Pager Source="{Bind Parent.Pager}"/>
-	</FullHeightPanel>
+	</Page.Pager>
 </Page>

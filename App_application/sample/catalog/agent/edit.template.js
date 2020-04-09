@@ -3,7 +3,8 @@ define(["require", "exports"], function (require, exports) {
     Object.defineProperty(exports, "__esModule", { value: true });
     const template = {
         validators: {
-            'Agent.Name2': '@[Error.Empty]'
+            'Agent.Name': '@[Error.Empty]',
+            'Agent.EMail': { valid: "email", msg: '@[Error.EMail]' },
         },
         commands: {}
     };

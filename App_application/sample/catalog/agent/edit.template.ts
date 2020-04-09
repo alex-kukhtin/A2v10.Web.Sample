@@ -1,7 +1,8 @@
 ﻿
 const template: Template = {
 	validators: {
-		'Agent.Name2': '@[Error.Empty]'
+		'Agent.Name': '@[Error.Empty]',
+		'Agent.EMail': { valid: StdValidator.email, msg:'@[Error.EMail]' },
 	},
 	commands: {
 

@@ -1,22 +1,22 @@
 {
 	"$schema": "../../../@schemas/model-json-schema.json#",
 	"schema": "a2v10sample",
-	"model": "Document",
+	"model": "Product",
 	"actions": {
 		"index": {
 			"index": true,
 			"template": "index.template",
-			"view": "index.view",
-			"parameters": {
-				"Kind": "Waybill"
-			}
-		},
+			"view": "index.view"
+		}
+	},
+	"dialogs": {
 		"edit": {
 			"template": "edit.template",
-			"view": "edit.view",
-			"parameters": {
-				"Kind": "Waybill"
-			}
+			"view": "edit.dialog"
+		},
+		"browse": {
+			"index": true,
+			"view": "browse.dialog"
 		}
 	}
 }

@@ -5,25 +5,34 @@ create or alter procedure a2v10sample.[Document.Index]
 as
 begin
 	set nocount on;
-	select [Documents!TDocument!Array] = null, [Id!!Id] = Id, [Date], [No], [Sum], [Memo], DateCreated
+	select [Documents!TDocument!Array] = null, [Id!!Id] = Id, [Date], [No], [Sum], [Memo], DateCreated,
+		[Agent!TAgent!RefId] = Agent
 	from a2v10sample.Documents 
-	where [Kind] = @Kind
+	where [Kind] = @Kind;
+
+	select [!TAgent!Map] = null, [Id!!Id] = a.Id, [Name], a.Memo, a.Phone, a.EMail
+	from a2v10sample.Agents a inner join a2v10sample.Documents d on d.Agent = a.Id
+	where d.Id in (select Agent from a2v10sample.Documents);
+
 end
 go
 ------------------------------------------------
 create or alter procedure a2v10sample.[Document.Load]
 @UserId bigint,
-@Id bigint = null
+@Id bigint = null,
+@Kind nvarchar(32) = null
 as
 begin
 	set nocount on;
 
-	select [Document!TDocument!Object] = null, [Id!!Id] = Id, [Date], [No], [Sum], [Memo], DateCreated,
-	[Agent!TAgent!RefId] = Agent, [Rows!TRow!Array] = null
+	select [Document!TDocument!Object] = null, [Id!!Id] = Id, [Date], [No], [Sum], [Memo], 
+	[Agent!TAgent!RefId] = Agent, [Rows!TRow!Array] = null,
+	DateCreated, DateModified
 	from a2v10sample.Documents 
 	where @Id = Id;
 
-	select [!TRow!Array] = null, [Id!!Id] = dd.Id, [!TDocument.Rows!ParentId] = [Document], [Qty], Price, [Sum]
+	select [!TRow!Array] = null, [Id!!Id] = dd.Id, [!TDocument.Rows!ParentId] = [Document], [Qty], Price, [Sum],
+		Memo
 	from a2v10sample.DocDetails dd
 	where Document = @Id
 	order by [RowNo];
@@ -34,5 +43,71 @@ begin
 
 end
 go
+------------------------------------------------
+create or alter procedure a2v10sample.[Document.Metadata]
+as
+begin
+	set nocount on;
+	declare @Document a2v10sample.[Document.TableType];
+	declare @Rows a2v10sample.[DocDetails.TableType];
+	select [Document!Document!Metadata] = null, * from @Document;
+	select [Rows!Document.Rows!Metadata]=null, * from @Rows;
+end
+go
+---------------------------------------------------
+create or alter procedure a2v10sample.[Document.Update]
+@TenantId int = 1,
+@UserId bigint,
+@Document a2v10sample.[Document.TableType] readonly,
+@Rows a2v10sample.[DocDetails.TableType] readonly,
+@Kind nvarchar(32)
+as
+begin
+	set nocount on;
+	set transaction isolation level serializable;
+	set xact_abort on;
 
+	declare @RetId bigint;
+	declare @output table(op sysname, id bigint);
+
+	merge a2v10sample.Documents as target
+	using @Document as source
+	on (target.Id = source.Id)
+	when matched then update set 
+		target.[Date] = source.[Date],
+		target.[No] = source.[No],
+		target.Agent = source.Agent,
+		target.[Sum] = source.[Sum],
+		target.Memo = source.Memo,
+		target.DateModified = getdate()
+	when not matched by target then
+	insert(Kind, [Date], [No], Agent, [Sum], Memo) 
+	values (@Kind, [Date], [No], Agent, [Sum], Memo)
+	output 
+		$action op,
+		inserted.Id id
+	into @output(op, id);
+	select top(1) @RetId = id from @output;
+
+	select top(1) @RetId = id from @output;
+
+	merge a2v10sample.DocDetails as target
+	using @Rows as source
+	on (target.Id = source.Id and target.Document = @RetId)
+	when matched then 
+		update set
+			target.RowNo = source.RowNumber,
+			--target.Product = source.Entity,
+			target.Qty = source.Qty,
+			target.Price = source.Price,
+			target.[Sum] = source.[Sum],
+			target.Memo = source.Memo
+	when not matched by target then
+		insert (Document, RowNo, Qty, Price, [Sum], Memo)
+		values (@RetId, RowNumber, Qty, Price, [Sum], Memo)
+	when not matched by source and target.Document = @RetId then delete;
+
+	execute a2v10sample.[Document.Load] @UserId, @RetId;
+end
+go
 

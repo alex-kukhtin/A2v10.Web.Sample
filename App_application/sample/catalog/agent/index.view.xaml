@@ -1,0 +1,34 @@
+﻿<Page xmlns="clr-namespace:A2v10.Xaml;assembly=A2v10.Xaml">
+	<Page.CollectionView>
+		<CollectionView RunAt="ServerUrl" Filter="Fragment" ItemsSource="{Bind Agents}"/>
+	</Page.CollectionView>
+	<Page.Toolbar>
+		<Toolbar>
+			<Button Command="{BindCmd Dialog, Action=Append, Argument={Bind Parent.ItemsSource}, Url='/catalog/agent/edit'}" Icon="Plus" Content="@[Create]"/>
+			<Button Command="{BindCmd Dialog, Action=EditSelected, Argument={Bind Parent.ItemsSource}, Url='/catalog/agent/edit'}" Icon="Edit" Content="@[Edit]"/>
+			<Separator />
+			<TextBox Label="@[Search]" Value="{Bind Parent.Filter.Fragment}"/>
+			<Separator />
+			<Button Command="{BindCmd Reload}" Content="@[Reload]" Icon="Reload"/>
+		</Toolbar>
+	</Page.Toolbar>
+	<DataGrid ItemsSource="{Bind Parent.ItemsSource}" GridLines="Horizontal" FixedHeader="True" Sort="True">
+		<DataGridColumn Header="Id" Content="{Bind Id}" Fit="True" Align="Right" Wrap="NoWrap"/>
+		<DataGridColumn Header="@[Name]" Content="{Bind Name}" />
+		<DataGridColumn Header="@[FullName]" Content="{Bind FullName}" />
+		<DataGridColumn Header="@[Code]" Content="{Bind Code}" Fit="True" Align="Right" Wrap="NoWrap"/>
+		<DataGridColumn Header="@[Phone]" Fit="True" Wrap="NoWrap" SortProperty="Phone">
+			<Span Content="{Bind Phone, Mask='+38 (0##) ###-##-##'}" />
+		</DataGridColumn>
+		<DataGridColumn Header="@[EMail]" Content="{Bind EMail}" Fit="True" Wrap="NoWrap"/>
+		<DataGridColumn Header="@[Memo]" Content="{Bind Memo}" />
+		<DataGridColumn Fit="True">
+			<CommandBar Visibility="Hover">
+				<Button Icon="Edit" Command="{BindCmd Dialog, Action=Edit, Url='/catalog/agent/edit', Argument={Bind}}"/>
+			</CommandBar>
+		</DataGridColumn>
+	</DataGrid>
+	<Page.Pager>
+		<Pager Source="{Bind Parent.Pager}"/>
+	</Page.Pager>
+</Page>
