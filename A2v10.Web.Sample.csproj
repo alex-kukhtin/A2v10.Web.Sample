@@ -52,6 +52,7 @@
     <Content Include="App_application\%40sql\platform\a2v10system.sql" />
     <Content Include="App_application\%40sql\platform\a2v10ui.sql" />
     <Content Include="App_application\%40sql\platform\a2v10workflow.sql" />
+    <Content Include="App_application\sample\%40sql\a2v10sample_full.sql" />
     <Content Include="App_application\sample\%40sql\schemas.sql" />
     <Content Include="App_application\sample\%40sql\tables.sql" />
     <Content Include="App_application\sample\%40sql\types.sql" />
@@ -59,6 +60,7 @@
     <Content Include="App_application\sample\catalog\agent\edit.template.js" />
     <Content Include="App_application\sample\catalog\agent\index.template.js" />
     <Content Include="App_application\sample\catalog\agent\model.sql" />
+    <Content Include="App_application\sample\catalog\product\model.sql" />
     <Content Include="App_application\sample\document\model.sql" />
     <Content Include="App_application\sample\document\waybill\edit.template.js" />
     <Content Include="App_application\sample\document\waybill\index.template.js" />
@@ -125,6 +127,7 @@
     <TypeScriptCompile Include="App_application\%40types\platform.d.ts" />
     <TypeScriptCompile Include="App_application\sample\catalog\agent\edit.template.ts" />
     <TypeScriptCompile Include="App_application\sample\catalog\agent\index.template.ts" />
+    <TypeScriptCompile Include="App_application\sample\catalog\product\edit.template.ts" />
     <TypeScriptCompile Include="App_application\sample\document\document.d.ts" />
     <TypeScriptCompile Include="App_application\sample\document\waybill\edit.template.ts" />
     <TypeScriptCompile Include="App_application\sample\document\waybill\index.template.ts" />
@@ -142,6 +145,7 @@
     <Content Include="App_application\sample\catalog\agent\model.json" />
     <Content Include="App_application\sample\document\waybill\model.json" />
     <Content Include="App_application\sample\catalog\product\model.json" />
+    <Content Include="App_application\sample\sql.json" />
     <None Include="packages.config" />
     <None Include="Web.config" />
   </ItemGroup>
@@ -165,6 +169,24 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="App_application\sample\catalog\agent\index.view.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_application\sample\catalog\product\browse.dialog.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_application\sample\catalog\product\index.view.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_application\sample\catalog\product\edit.dialog.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Content>
@@ -195,6 +217,9 @@
       </FlavorProperties>
     </VisualStudio>
   </ProjectExtensions>
+  <PropertyGroup>
+    <PostBuildEvent>$(ProjectDir)tools\BuildSql.exe $(ProjectDir)App_application/sample</PostBuildEvent>
+  </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

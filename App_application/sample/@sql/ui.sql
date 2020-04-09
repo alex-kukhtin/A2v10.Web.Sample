@@ -16,7 +16,7 @@ begin
 		(20,   1,  N'@[Catalog]',     N'catalog',     null, 20),
 		(101, 10,  N'@[Waybills]',    N'waybill',     N'file',  10),
 		(201, 20,  N'@[Agents]',      N'agent',       N'users', 10),
-		(202, 20,  N'@[Products]',    N'product',     N'pack', 20)
+		(202, 20,  N'@[Products]',    N'product',     N'package-outline', 20)
 	merge a2ui.Menu as target
 	using @menu as source
 	on target.Id=source.id and target.Id >= 1 and target.Id < 900

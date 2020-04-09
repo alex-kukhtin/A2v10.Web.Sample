@@ -32,7 +32,7 @@ begin
 	where @Id = Id;
 
 	select [!TRow!Array] = null, [Id!!Id] = dd.Id, [!TDocument.Rows!ParentId] = [Document], [Qty], Price, [Sum],
-		Memo
+		Memo, [Product!TProduct!RefId] = Product
 	from a2v10sample.DocDetails dd
 	where Document = @Id
 	order by [RowNo];
@@ -41,6 +41,9 @@ begin
 	from a2v10sample.Agents a inner join a2v10sample.Documents d on d.Agent = a.Id
 	where d.Id = @Id;
 
+	select [!TProduct!Map] = null, [Id!!Id] = p.Id, p.[Name], p.Memo, p.BarCode, p.Article
+	from a2v10sample.Products p inner join a2v10sample.DocDetails dd on dd.Product = p.Id
+	where dd.Document = @Id;
 end
 go
 ------------------------------------------------
@@ -97,17 +100,27 @@ begin
 	when matched then 
 		update set
 			target.RowNo = source.RowNumber,
-			--target.Product = source.Entity,
+			target.Product = source.Product,
 			target.Qty = source.Qty,
 			target.Price = source.Price,
 			target.[Sum] = source.[Sum],
 			target.Memo = source.Memo
 	when not matched by target then
-		insert (Document, RowNo, Qty, Price, [Sum], Memo)
-		values (@RetId, RowNumber, Qty, Price, [Sum], Memo)
+		insert (Document, RowNo, Qty, Price, [Sum], Product, Memo)
+		values (@RetId, RowNumber, Qty, Price, [Sum], Product, Memo)
 	when not matched by source and target.Document = @RetId then delete;
 
 	execute a2v10sample.[Document.Load] @UserId, @RetId;
 end
 go
-
+------------------------------------------------
+create or alter procedure a2v10sample.[Document.Delete]
+@UserId bigint,
+@Id bigint,
+@Kind nvarchar(32)
+as
+begin
+	set nocount on;
+	delete from a2v10sample.Documents where Id=@Id;
+end
+go

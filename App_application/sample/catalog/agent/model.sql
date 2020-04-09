@@ -136,4 +136,22 @@ begin
 	execute a2v10sample.[Agent.Load] @UserId, @RetId;
 end
 go
+------------------------------------------------
+create or alter procedure a2v10sample.[Agent.Delete]
+@UserId bigint,
+@Id bigint = null
+as
+begin
+	set nocount on;
+
+	begin try
+		delete from a2v10sample.Agents where Id=@Id;
+	end try
+	begin catch
+		throw 60000, N'UI:@[Error.Used]', 0;
+	end catch
+
+
+end
+go
 

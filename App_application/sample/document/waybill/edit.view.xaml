@@ -3,6 +3,7 @@
 		<Taskpad Width="20rem" Background="WhiteSmoke">
 			<PropertyGrid>
 				<PropertyGridItem Content="{Bind Document.Id}" Name="Id"/>
+				<PropertyGridItem Content="{Bind Document.DateModified, DataType=DateTime}" Name="@[Modified]"/>
 			</PropertyGrid>
 		</Taskpad>
 	</Page.Taskpad>
@@ -17,11 +18,11 @@
 		<Header Grid.Row="1">@[Waybill]</Header>
 		<TextBox Label="@[No]" Value="{Bind Document.No}" Width="20rem"/>
 		<DatePicker Label="@[Date]" Value="{Bind Document.Date, DataType=Date}" Width="20rem"/>
-		<Selector Value="{Bind Document.Agent}" Label="@[Agent]" Width="40rem">
-			<Selector.AddOns>
+		<TextBox Value="{Bind Document.Agent.Name}" Label="@[Agent]" Width="40rem">
+			<TextBox.AddOns>
 				<Hyperlink Icon="Search" Command="{BindCmd Browse, Argument={Bind Document.Agent}, Url='/catalog/agent/browse'}"/>
-			</Selector.AddOns>
-		</Selector>
+			</TextBox.AddOns>
+		</TextBox>
 		<Toolbar Style="Transparent">
 			<Button Icon="Plus" Content="@[Row.Add]" Command="{BindCmd Append, Argument={Bind Document.Rows}}"/>
 		</Toolbar>
@@ -51,13 +52,11 @@
 			<TableRow>
 				<TableCell Content="{Bind $RowNo}"/>
 				<TextBox Value="{Bind Product.Article}"/>
-				<TableCell>
-					<Selector>
-						<Selector.AddOns>
-							<Hyperlink Icon="Search" Command="{BindCmd Browse, Url='/catalog/product/browse', Argument={Bind Product}}"/>
-						</Selector.AddOns>
-					</Selector>
-				</TableCell>
+				<TextBox Value="{Bind Product.Name}">
+					<TextBox.AddOns>
+						<Hyperlink Icon="Search" Command="{BindCmd Browse, Url='/catalog/product/browse', Argument={Bind Product}}"/>
+					</TextBox.AddOns>
+				</TextBox>
 				<TextBox Value="{Bind Qty, DataType=Number}" Align="Right"/>
 				<TextBox Value="{Bind Price, DataType=Currency}" Align="Right"/>
 				<TextBox Value="{Bind Sum, DataType=Currency}" Align="Right"/>
