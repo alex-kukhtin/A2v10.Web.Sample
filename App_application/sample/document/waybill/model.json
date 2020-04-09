@@ -1,0 +1,19 @@
+{
+	"$schema": "../../../@schemas/model-json-schema.json#",
+	"schema": "a2v10sample",
+	"model": "Document",
+	"actions": {
+		"index": {
+			"index": true,
+			"template": "index.template",
+			"view": "index.view",
+			"parameters": {
+				"Kind": "Waybill"
+			}
+		},
+		"edit": {
+			"template": "edit.template",
+			"view": "edit.view"
+		}
+	}
+}

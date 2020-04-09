@@ -1,0 +1,26 @@
+﻿<Page xmlns="clr-namespace:A2v10.Xaml;assembly=A2v10.Xaml">
+	<Page.CollectionView>
+		<CollectionView RunAt="ServerUrl" ItemsSource="{Bind Documents}"/>
+	</Page.CollectionView>
+	<FullHeightPanel>
+		<Toolbar>
+			<Button Content="@[Create]" Icon="Plus" Command="{BindCmd Create, Url='/document/waybill/edit'}"/>
+			<Separator />
+			<Button Content="@[Reload]" Icon="Reload" Command="{BindCmd Reload}"/>
+		</Toolbar>
+		<DataGrid FullHeightPanel.Fill="True" ItemsSource="{Bind Parent.ItemsSource}">
+			<DataGridColumn Header="Id" Content="{Bind Id}" Fit="True"/>
+			<DataGridColumn Header="@[Date]" Content="{Bind Date, DataType=Date}" Fit="True"/>
+			<DataGridColumn Header="@[No]" Content="{Bind No}" Fit="True"/>
+			<DataGridColumn Header="@[Sum]" Content="{Bind Sum, DataType=Currency}" Fit="True" Align="Right"/>
+			<DataGridColumn Header="@[Memo]" Content="{Bind Memo}"/>
+			<DataGridColumn>
+				<CommandBar Visibility="Hover">
+					<Button Icon="ArrowOpen" Command="{BindCmd Open, Url='/document/waybill/edit', Argument={Bind}}"/>
+					<Button Icon="Delete" Command="{BindCmd DbRemove, Argument={Bind}}"/>
+				</CommandBar>
+			</DataGridColumn>
+		</DataGrid>
+		<Pager Source="{Bind Parent.Pager}"/>
+	</FullHeightPanel>
+</Page>

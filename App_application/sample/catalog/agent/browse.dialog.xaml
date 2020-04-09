@@ -1,0 +1,15 @@
+﻿<Dialog xmlns="clr-namespace:A2v10.Xaml;assembly=A2v10.Xaml" Title="@[Agent.Browse]">
+	<Dialog.Buttons>
+		<Button Content="Выбрать" Command="{BindCmd Select, Argument={Bind Agents}}"/>
+		<Button Content="Отмена" Command="{BindCmd Close}"/>
+	</Dialog.Buttons>
+	<CollectionView ItemsSource="{Bind Agents}" RunAt="Server" Filter="Fragment">
+		<Toolbar>
+			
+		</Toolbar>
+		<DataGrid ItemsSource="{Bind Parent.ItemsSource}">
+			<DataGridColumn Header="Id" Content="{Bind Id}" Fit="True" Align="Right"/>
+		</DataGrid>
+		<Pager Source="{Bind Parent.Pager}" />
+	</CollectionView>
+</Dialog>
