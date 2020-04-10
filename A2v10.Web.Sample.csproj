@@ -57,13 +57,9 @@
     <Content Include="App_application\sample\%40sql\tables.sql" />
     <Content Include="App_application\sample\%40sql\types.sql" />
     <Content Include="App_application\sample\%40sql\ui.sql" />
-    <Content Include="App_application\sample\catalog\agent\edit.template.js" />
-    <Content Include="App_application\sample\catalog\agent\index.template.js" />
     <Content Include="App_application\sample\catalog\agent\model.sql" />
     <Content Include="App_application\sample\catalog\product\model.sql" />
     <Content Include="App_application\sample\document\model.sql" />
-    <Content Include="App_application\sample\document\waybill\edit.template.js" />
-    <Content Include="App_application\sample\document\waybill\index.template.js" />
     <Content Include="App_application\sample\_localization\sample.uk.txt" />
   </ItemGroup>
   <ItemGroup>
