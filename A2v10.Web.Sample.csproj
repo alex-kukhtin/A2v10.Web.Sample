@@ -54,6 +54,15 @@
     <Content Include="App_application\%40sql\platform\source\a2v10ui.sql" />
     <Content Include="App_application\%40sql\platform\source\a2v10workflow.sql" />
     <Content Include="App_application\%40sql\sample_full.sql" />
+    <Content Include="App_application\admin\identity\api\edit.template.js" />
+    <Content Include="App_application\admin\identity\api\index.template.js" />
+    <Content Include="App_application\admin\identity\api\readme.txt" />
+    <Content Include="App_application\admin\identity\group\edit.template.js" />
+    <Content Include="App_application\admin\identity\role\edit.template.js" />
+    <Content Include="App_application\admin\identity\user\create.template.js" />
+    <Content Include="App_application\admin\identity\user\edit.template.js" />
+    <Content Include="App_application\admin\identity\user\index.template.js" />
+    <Content Include="App_application\admin\identity\user\password.template.js" />
     <Content Include="App_application\sample\_sql\schemas.sql" />
     <Content Include="App_application\sample\_sql\tables.sql" />
     <Content Include="App_application\sample\_sql\types.sql" />
@@ -137,51 +146,47 @@
     <Content Include="App_application\%40schemas\sql-json-schema.json" />
     <Content Include="App_application\%40schemas\model-json-schema.json" />
     <Content Include="App_application\%40schemas\api-model-json-schema.json" />
+    <Content Include="App_application\admin\identity\api\model.json" />
+    <Content Include="App_application\admin\identity\group\model.json" />
+    <Content Include="App_application\admin\identity\role\model.json" />
+    <Content Include="App_application\admin\identity\user\model.json" />
     <None Include="packages.config" />
     <None Include="Web.config" />
     <Content Include="Web.config.sample" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="App_application\sample\catalog\agent\browse.dialog.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="App_application\sample\catalog\agent\edit.dialog.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="App_application\sample\document\waybill\edit.view.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="App_application\sample\document\waybill\index.view.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Content>
+    <Content Include="App_application\sample\catalog\agent\browse.dialog.xaml"/>
+    <Content Include="App_application\sample\catalog\agent\edit.dialog.xaml"/>
+    <Content Include="App_application\sample\document\waybill\edit.view.xaml"/>
+    <Content Include="App_application\sample\document\waybill\index.view.xaml"/>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="App_application\sample\catalog\agent\index.view.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Content>
+    <Content Include="App_application\sample\catalog\agent\index.view.xaml"/>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="App_application\sample\catalog\product\browse.dialog.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Content>
+    <Content Include="App_application\sample\catalog\product\browse.dialog.xaml"/>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="App_application\sample\catalog\product\index.view.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Content>
+    <Content Include="App_application\sample\catalog\product\index.view.xaml"/>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="App_application\sample\catalog\product\edit.dialog.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Content>
+    <Content Include="App_application\sample\catalog\product\edit.dialog.xaml"/>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="App_application\admin\identity\api\edit.dialog.xaml"/>
+    <Content Include="App_application\admin\identity\api\index.view.xaml"/>
+    <Content Include="App_application\admin\identity\group\browse.dialog.xaml"/>
+    <Content Include="App_application\admin\identity\group\edit.dialog.xaml"/>
+    <Content Include="App_application\admin\identity\group\index.view.xaml"/>
+    <Content Include="App_application\admin\identity\role\browse.dialog.xaml"/>
+    <Content Include="App_application\admin\identity\role\edit.dialog.xaml" />
+    <Content Include="App_application\admin\identity\role\index.view.xaml"/>
+    <Content Include="App_application\admin\identity\user\browse.dialog.xaml"/>
+    <Content Include="App_application\admin\identity\user\create.dialog.xaml"/>
+    <Content Include="App_application\admin\identity\user\edit.dialog.xaml"/>
+    <Content Include="App_application\admin\identity\user\index.view.xaml"/>
+    <Content Include="App_application\admin\identity\user\password.dialog.xaml"/>
+    <Content Include="App_application\admin\identity\user\popover.popup.xaml"/>
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
