@@ -1,6 +1,6 @@
 ﻿/*
-version: 10.0.0001
-generated: 10.04.2020 11:08:01
+version: 10.0.0021
+generated: 22.02.2021 12:52:41
 */
 
 set nocount on;
@@ -18,15 +18,15 @@ if not exists(select * from INFORMATION_SCHEMA.TABLES where TABLE_SCHEMA=N'a2sys
 	);
 go
 ----------------------------------------------
-if exists(select * from a2sys.Versions where [Module]=N'script:A2v10.Sample')
-	update a2sys.Versions set [Version]=1, [File]=N'@sql/a2v10sample_full.sql', Title=null where [Module]=N'script:A2v10.Sample';
+if exists(select * from a2sys.Versions where [Module]=N'script:full')
+	update a2sys.Versions set [Version]=21, [File]=N'@sql/sample_full.sql', Title=null where [Module]=N'script:full';
 else
-	insert into a2sys.Versions([Module], [Version], [File], Title) values (N'script:A2v10.Sample', 1, N'@sql/a2v10sample_full.sql', null);
+	insert into a2sys.Versions([Module], [Version], [File], Title) values (N'script:full', 21, N'@sql/sample_full.sql', null);
 go
 
 
 
-/* @sql/a2v10sample_full.sql */
+/* @sql/sample_full.sql */
 
 ------------------------------------------------
 if not exists(select * from INFORMATION_SCHEMA.SCHEMATA where SCHEMA_NAME=N'a2v10sample')

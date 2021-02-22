@@ -16,6 +16,10 @@
 @AllUsers=Все пользователи
 @AdminUsers=Администраторы
 @User=Пользователь
+@Users=Пользователи
+@ApiUsers=Пользователи API
+@Groups=Группы
+@Roles=Роли
 @OldPassword=Старый пароль
 @NewPassword=Новый пароль
 @SetPassword=Установить пароль
@@ -62,6 +66,7 @@
 @NewElement=Новый элемент
 @Cancel=Отмена
 @Select=Выбрать
+@Filter=Фильтр
 ;
 @Code=Код
 @Date=Дата
@@ -82,6 +87,9 @@
 @Error.EnterName=Введите наименование элемента
 @Error.DuplicateCode=Элемент с таким кодом уже существует
 @Error.Exception=Что-то пошло не так, как ожидалось :-(
+@Error.Link=Перейти на начальную страницу
 @Error.FileFormatException=Некорректный формат файла
 @Error.DataReadOnly=База данных только для чтения
 @UIError.AccessDenied=UI:Доступ запрещен
+;
+@Placeholder.Search=Введите текст для поиска

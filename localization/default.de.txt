@@ -1,5 +1,5 @@
 ﻿;
-@About=About
+@About=Über A2v10
 @Confidentiality=Vertraulichkeit
 @Contacts=Kontakt
 @Version=Version
@@ -16,6 +16,10 @@
 @AllUsers=Alle Benutzer
 @AdminUsers=Administratoren
 @User=Benutzer
+@Users=Benutzer
+@ApiUsers=API Benutzer
+@Groups=Gruppen
+@Roles=Rollen
 @OldPassword=altes Passwort
 @NewPassword=Neues Passwort
 @SetPassword=Passwort festlegen
@@ -33,7 +37,7 @@
 ;
 @Home=Home
 @Documents=Dokumente
-@Catalogs=Kataloge 
+@Catalogs=Kataloge
 @Sales=Verkäufe
 @Purchase=Einkäufe
 @Inventory=Inventar
@@ -53,7 +57,7 @@
 @Print=Drucken
 @Search=Suchen
 @Help=Hilfe
-@Export=Экспорт
+@Export=Export
 ;
 @General=Algemeine
 @Properties=Eigenschaften
@@ -62,6 +66,7 @@
 @NewElement=Neues Element
 @Cancel=Abbrechen
 @Select=Auswählen
+@Filter=Filter
 ;
 @Code=Code
 @Date=Datum
@@ -82,5 +87,9 @@
 @Error.EnterName=Geben Sie den Namen des Elements ein
 @Error.DuplicateCode=Ein Element mit diesem Code ist bereits vorhanden
 @Error.Exception=Etwas ist unerwartet schief gelaufen :-(
+@Error.Link=Zur Homepage gehen
 @Error.FileFormatException=Falsches Dateiformat
 @Error.DataReadOnly=Datenbank ist schreibgeschützt
+;
+@Placeholder.Search=Geben Sie Ihren Suchtext ein
+

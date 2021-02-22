@@ -12940,10 +12940,15 @@ Vue.directive('resize', {
 		tabSideBar: a2TabSideBar
 	};
 })();	
-// Copyright © 2015-2020 Alex Kukhtin. All rights reserved.
+// Copyright © 2019-2020 Alex Kukhtin. All rights reserved.
 
-/*20201005-7710*/
-/* controllers/shell.js */
+/*20200516-7660*/
+/* mobile/shell.js */
+
+
+/*TODO:
+3. AppKeyMobile
+ */
 
 (function () {
 
@@ -12956,115 +12961,147 @@ Vue.directive('resize', {
 	const period = require('std:period');
 	const log = require('std:log');
 	const utils = require('std:utils');
-	const locale = window.$$locale;
 	const platform = require('std:platform');
-	const navBar = component('std:navbar');
-	const sideBar = component('std:sidebar');
-	const menu = component('std:navmenu');
 
-	const a2AppHeader = {
-		template: `
-<header class="header">
-	<div class=h-menu v-if=isNavBarMenu @click.stop.prevent=clickMenu><i class="ico ico-grid2"></i></div>
-	<div class=h-block v-if='!isNavBarMenu'>
-		<!--<i class="ico-user"></i>-->
-		<a class=app-title href='/' @click.prevent="root" v-text="title" tabindex="-1"></a>
-		<span class=app-subtitle v-text="subtitle"></span>
-	</div>
-	<div v-if=isNavBarMenu class=h-menu-title v-text=seg0text></div>
-	<div class="aligner"></div>
-	<span class="title-notify" v-if="notifyText" v-text="notifyText" :title="notifyText" :class="notifyClass"></span>
-	<div class="aligner"></div>
-	<template v-if="!isSinglePage ">
-		<a2-new-button :menu="newMenu" icon="plus" btn-style="success"></a2-new-button>
-		<slot></slot>
-		<a2-new-button :menu="settingsMenu" icon="gear-outline" :title="locale.$Settings"></a2-new-button>
-		<a class="nav-admin middle" v-if="hasFeedback" tabindex="-1" @click.prevent="showFeedback" :title="locale.$Feedback" :class="{open: feedbackVisible}"><i class="ico ico-comment-outline"></i></a>
-		<a class="nav-admin" v-if="userIsAdmin" href="/admin/" tabindex="-1"><i class="ico ico-gear-outline"></i></a>
-	</template>
-	<div class="dropdown dir-down separate" v-dropdown>
-		<button class="btn user-name" toggle :title="personName"><i class="ico ico-user"></i> <span id="layout-person-name" class="person-name" v-text="personName"></span><span class="caret"></span></button>
-		<div class="dropdown-menu menu down-left">
-			<a v-if="!isSinglePage " v-for="(itm, itmIndex) in profileItems" @click.prevent="doProfileMenu(itm)" class="dropdown-item" tabindex="-1"><i class="ico" :class="'ico-' + itm.icon"></i> <span v-text="itm.title" :key="itmIndex"></span></a>
-			<a @click.prevent="changePassword" class="dropdown-item" tabindex="-1"><i class="ico ico-access"></i> <span v-text="locale.$ChangePassword"></span></a>
-			<div class="divider"></div>
-			<form id="logoutForm" method="post" action="/account/logoff">
-				<a href="javascript:document.getElementById('logoutForm').submit()" tabindex="-1" class="dropdown-item"><i class="ico ico-exit"></i> <span v-text="locale.$Quit"></span></a>
-			</form>
-		</div>
-	</div>
-</header>
-`,
-		props: {
-			title: String,
-			subtitle: String,
-			userState: Object,
-			personName: String,
-			userIsAdmin: Boolean,
-			menu: Array,
-			newMenu: Array,
-			settingsMenu: Array,
-			appData: Object,
-			showFeedback: Function,
-			feedbackVisible: Boolean,
-			singlePage: String,
-			changePassword: Function,
-			navBarMode: String
-		},
-		computed: {
-			isSinglePage() {
-				return !!this.singlePage;
-			},
-			locale() { return locale; },
-			notifyText() {
-				return this.getNotify(2);
-			},
-			notifyClass() {
-				return this.getNotify(1).toLowerCase();
-			},
-			feedback() {
-				return this.appData ? this.appData.feedback : null;
-			},
-			hasFeedback() {
-				return this.appData && this.appData.feedback;
-			},
-			profileItems() {
-				return this.appData ? this.appData.profileMenu : null;
-			},
-			isNavBarMenu() {
-				return this.navBarMode === 'Menu';
-			},
-			seg0text() {
-				let seg0 = this.$store.getters.seg0;
-				let mx = this.menu.find(x => x.Url === seg0);
-				return mx ? mx.Name : '';
+	const UNKNOWN_TITLE = 'unknown title';
+
+	function findMenu(menu, func, parentMenu) {
+		if (!menu)
+			return null;
+		for (let i = 0; i < menu.length; i++) {
+			let itm = menu[i];
+			if (func(itm))
+				return itm;
+			if (itm.Menu) {
+				if (parentMenu)
+					parentMenu.Url = itm.Url;
+				let found = findMenu(itm.Menu, func);
+				if (found) {
+					platform.set(itm, '$expanded', true);
+					return found;
+				}
 			}
+		}
+		return null;
+	}
+
+	function makeMenuUrl(menu, url, opts) {
+		opts = opts || {};
+		url = urlTools.combine(url).toLowerCase();
+		let sUrl = url.split('/');
+		if (sUrl.length >= 4)
+			return url; // full qualified
+		let routeLen = sUrl.length;
+		let seg1 = sUrl[1];
+		if (seg1 === 'app')
+			return url; // app
+		let am = null;
+		if (seg1)
+			am = menu.find((mi) => mi.Url === seg1);
+		if (!am) {
+			// no segments - find first active menu
+			let parentMenu = { Url: '' };
+			am = findMenu(menu, (mi) => mi.Url && !mi.Menu, parentMenu);
+			if (am) {
+				opts.title = am.Name;
+				return urlTools.combine(url, parentMenu.Url, am.Url);
+			}
+		} else if (am && !am.Menu) {
+			opts.title = am.Name;
+			return url; // no sub menu
+		}
+		url = urlTools.combine(seg1);
+		let seg2 = sUrl[2];
+		if (!seg2 && opts.seg2)
+			seg2 = opts.seg2; // may be
+		if (!seg2) {
+			// find first active menu in am.Menu
+			am = findMenu(am.Menu, (mi) => mi.Url && !mi.Menu);
+		} else {
+			// find current active menu in am.Menu
+			am = findMenu(am.Menu, (mi) => mi.Url === seg2);
+		}
+		if (am) {
+			opts.title = am.Name;
+			return urlTools.combine(url, am.Url);
+		}
+		return url; //TODO: ????
+	}
+
+	const a2MobileMenu = {
+		template: `
+<div>
+<transition name="fade">
+	<div class="menu-overlay" @click.stop.prevent="hideMenu" v-if="visible">
+	</div>
+</transition>
+<transition name="slide">
+<div class="menu-container" v-if="visible">
+	<ul class="menu-view">
+		<li v-for="m in menu">
+			<template v-if="m.Menu">
+				<div class="menu-folder" v-text="m.Name"></div>
+				<ul class="menu-view">
+					<li v-for="sm in m.Menu">
+						<a href="" :class="{active: isActive(m.Url, sm.Url)}" @click.stop.prevent="navigateMenu(m.Url, sm.Url)">
+							<i class="ico" :class="'ico-'+sm.Icon"></i><span class="menu-text" v-text="sm.Name"></span>
+						</a>
+					</li>
+				</ul>
+			</template>
+			<a v-else href=""  :class="{active: isActive(m.Url)}" @click.stop.prevent="navigateMenu(m.Url)">
+				<i class="ico" :class="'ico-'+m.Icon"></i><span class="menu-text" v-text="m.Name"></span>
+			</a>
+		</li>
+		<li class="group">
+			<form id="logoutForm" method="post" action="/account/logoff">
+				<a href="javascript:document.getElementById('logoutForm').submit()" tabindex="-1" class="dropdown-item"><i class="ico ico-exit"></i><span class=menu-text v-text="locale.$Quit"/></a>
+			</form>
+		</li>
+	</ul>
+</div>
+</transition>
+</div>
+`,
+		store,
+		props: {
+			menu: Array,
+			visible: Boolean,
+			hide: Function,
+			navigate: Function
 		},
 		methods: {
-			getNotify(ix) {
-				let n = this.userState ? this.userState.Notify : null;
-				if (!n) return '';
-				let m = n.match(/\((.*)\)(.*)/);
-				if (m && m.length > ix)
-					return m[ix];
-				return '';
+			hideMenu() {
+				if (this.hide)
+					this.hide();
 			},
-			root() {
-				let opts = { title: null };
-				let currentUrl = this.$store.getters.url;
-				let menuUrl = this.isSinglePage ? ('/' + this.singlePage) : menu.makeMenuUrl(this.menu, '/', opts);
-				if (currentUrl === menuUrl) {
-					return; // already in root
-				}
-				this.$store.commit('navigate', { url: menuUrl, title: opts.title });
+			navigateMenu(s1, s2) {
+				if (this.navigate)
+					this.navigate(this.makeUrl(s1, s2));
 			},
-			doProfileMenu(itm) {
-				store.commit('navigate', { url: itm.url });
+			makeUrl(s1, s2) {
+				let root = window.$$rootUrl;
+				let url = urlTools.combine(root, s1);
+				if (s2)
+					url = urlTools.combine(root, s1, s2);
+				return url;
 			},
-			clickMenu() {
-				if (this.isNavBarMenu) {
-					eventBus.$emit('clickNavMenu', true);
-				}
+			isActive(s1, s2) {
+				if (s2)
+					return s1 === this.seg0 && s2 === this.seg1;
+				else
+					return s1 === this.seg0;
+			}
+		},
+		computed: {
+			seg0() {
+				return this.$store.getters.seg0;
+			},
+			seg1() {
+				return this.$store.getters.seg1;
+			},
+			locale() {
+				return window.$$locale;
 			}
 		}
 	};
@@ -13073,7 +13110,7 @@ Vue.directive('resize', {
 		render(h) {
 			return h('div', {
 				attrs: {
-					class: 'content-view ' + this.cssClass
+					class: 'content-view'
 				}
 			}, [h('include', {
 				props: {
@@ -13092,19 +13129,7 @@ Vue.directive('resize', {
 				if (len === 2 || len === 3)
 					url += '/index/0';
 				return urlTools.combine(root, '/_page', url) + store.getters.search;
-			},
-			cssClass() {
-				let route = this.$store.getters.route;
-				if (route.seg0 === 'app')
-					return 'full-view';
-				if (menu.isSeparatePage(this.pages, route.seg0))
-					return 'full-view';
-				return route.len === 3 ? 'partial-page' :
-					route.len === 2 ? 'full-page' : 'full-view';
 			}
-		},
-		props: {
-			pages: String
 		},
 		data() {
 			return {
@@ -13122,101 +13147,44 @@ Vue.directive('resize', {
 		}
 	};
 
-	const a2MainView = {
+	const a2MainViewMobile = {
 		store,
 		template: `
-<div :class=cssClass class=main-view>
-	<component :is=navBarComponent :title=title :menu=menu v-if=isNavBarVisible 
-		:period=period :is-navbar-menu=isNavBarMenu></component>
-	<component :is=sideBarComponent v-if=sideBarVisible :menu=menu :mode=sideBarMode></component>
-	<a2-content-view :pages=pages></a2-content-view>
-	<div class=load-indicator v-show=pendingRequest></div>
-	<div class=modal-stack v-if=hasModals>
+<div :class="cssClass" class="main-view">
+	<a2-content-view></a2-content-view>
+	<div class="load-indicator" v-show="pendingRequest"></div>
+	<div class="modal-stack" v-if="hasModals">
 		<div class="modal-wrapper modal-animation-frame" v-for="dlg in modals" :class="{show: dlg.wrap}">
-			<a2-modal :dialog=dlg></a2-modal>
+			<a2-modal :dialog="dlg"></a2-modal>
 		</div>
 	</div>
 	<a2-toastr></a2-toastr>
 </div>`,
 		components: {
-			'a2-nav-bar': navBar.standardNavBar,
-			'a2-nav-bar-page': navBar.pageNavBar,
-			'a2-side-bar': sideBar.standardSideBar,
-			'a2-side-bar-compact': sideBar.compactSideBar,
-			'a2-side-bar-tab': sideBar.tabSideBar,
 			'a2-content-view': contentView,
 			'a2-modal': modal,
 			'a2-toastr': toastr
 		},
 		props: {
-			menu: Array,
-			sideBarMode: String,
-			navBarMode: String,
-			period: period.constructor,
-			pages: String,
-			title: String
+			period: period.constructor
 		},
 		data() {
 			return {
-				sideBarCollapsed: false,
-				showNavBar: true,
+				menuVisible: false,
 				requestsCount: 0,
 				modals: [],
 				modalRequeryUrl: ''
 			};
 		},
 		computed: {
-			navBarComponent() {
-				return this.isNavBarMenu ? 'a2-nav-bar-page' : 'a2-nav-bar';
-			},
-			sideBarComponent() {
-				if (this.sideBarMode === 'Compact')
-					return 'a2-side-bar-compact';
-				else if (this.sideBarMode === 'TabBar')
-					return 'a2-side-bar-tab';
-				return 'a2-side-bar';
-			},
-			isSideBarCompact() {
-				return this.sideBarMode === 'Compact';
-			},
 			route() {
 				return this.$store.getters.route;
 			},
-			sideBarInitialCollapsed() {
-				let sb = localStorage.getItem('sideBarCollapsed');
-				if (sb === 'true')
-					return true;
-				// auto collapse for tablet
-				if (!window.matchMedia('(min-width:1025px)').matches)
-					return true;
-				return false;
-			},
-			isNavBarVisible() {
-				if (!this.showNavBar) return false;
-				if (this.isNavBarMenu) return true;
-				let route = this.route;
-				if (menu.isSeparatePage(this.pages, route.seg0)) return false;
-				return route.seg0 !== 'app' && (route.len === 2 || route.len === 3);
-			},
-			sideBarVisible() {
-				let route = this.route;
-				return route.seg0 !== 'app' && route.len === 3;
-			},
-			isSideBarTop() {
-				return this.sideBarMode === 'TabBar';
-			},
 			cssClass() {
-				let cls = (this.isNavBarMenu ? 'nav-bar-menu ' : '') +
-					'side-bar-position-' + (this.isSideBarTop ? 'top ' : 'left ');
-				if (this.isSideBarTop)
-					cls += !this.sideBarVisible ? 'side-bar-hidden' : '';
-				else
-					cls += this.sideBarCollapsed ? 'collapsed' : 'expanded';
-				return cls;
+				return undefined;
 			},
 			pendingRequest() { return !this.hasModals && this.requestsCount > 0; },
-			hasModals() { return this.modals.length > 0; },
-			isNavBarMenu() {return this.navBarMode === 'Menu';}
+			hasModals() { return this.modals.length > 0; }
 		},
 		methods: {
 			setupWrapper(dlg) {
@@ -13225,41 +13193,20 @@ Vue.directive('resize', {
 					dlg.wrap = true;
 					//console.dir("wrap:" + dlg.wrap);
 				}, 50); // same as modal
-			},
-			showNavMenu(bShow) {
-				if (bShow)
-					eventBus.$emit('closeAllPopups');
-				this.showNavBar = bShow;
 			}
 		},
 		created() {
 			let me = this;
-			if (this.isNavBarMenu)
-				this.showNavBar = false;
 			eventBus.$on('beginRequest', function () {
 				//if (me.hasModals)
-					//return;
+				//return;
 				me.requestsCount += 1;
 			});
 			eventBus.$on('endRequest', function () {
 				//if (me.hasModals)
-					//return;
+				//return;
 				me.requestsCount -= 1;
 			});
-
-			function findRealDialog() {
-				// skip alerts, confirm, etc
-				for (let i = me.modals.length - 1; i >= 0; --i) {
-					let md = me.modals[i];
-					if (md.rd) {
-						return md;
-					}
-				}
-				return null;
-			}
-
-			if (this.isNavBarMenu)
-				eventBus.$on('clickNavMenu', this.showNavMenu);
 
 			eventBus.$on('modal', function (modal, prms) {
 				let id = utils.getStringId(prms ? prms.data : null);
@@ -13269,7 +13216,7 @@ Vue.directive('resize', {
 				if (raw)
 					url = urlTools.combine(root, modal, id);
 				url = store.replaceUrlQuery(url, prms.query);
-				let dlg = { title: "dialog", url: url, prms: prms.data, wrap:false, rd: prms.rd };
+				let dlg = { title: "dialog", url: url, prms: prms.data, wrap: false };
 				dlg.promise = new Promise(function (resolve, reject) {
 					dlg.resolve = resolve;
 				});
@@ -13281,7 +13228,7 @@ Vue.directive('resize', {
 			eventBus.$on('modaldirect', function (modal, prms) {
 				let root = window.$$rootUrl;
 				let url = urlTools.combine(root, '/_dialog', modal);
-				let dlg = { title: "dialog", url: url, prms: prms.data, wrap:false };
+				let dlg = { title: "dialog", url: url, prms: prms.data, wrap: false };
 				dlg.promise = new Promise(function (resolve, reject) {
 					dlg.resolve = resolve;
 				});
@@ -13291,16 +13238,17 @@ Vue.directive('resize', {
 			});
 
 			eventBus.$on('modalSetAttribites', function (attr, instance) {
-				if (!attr || !instance) return;
-				let dlg = findRealDialog();
-				if (!dlg) return;
+				if (!me.modals.length || !attr || !instance)
+					return;
+				let dlg = me.modals[me.modals.length - 1];
 				dlg.attrs = instance.__parseControllerAttributes(attr);
 			});
 
 			eventBus.$on('modalCreated', function (instance) {
 				// include instance!
-				let dlg = findRealDialog();
-				if (!dlg) return;
+				if (!me.modals.length)
+					return;
+				let dlg = me.modals[me.modals.length - 1];
 				dlg.instance = instance;
 			});
 
@@ -13310,8 +13258,9 @@ Vue.directive('resize', {
 			});
 
 			eventBus.$on('modalRequery', function (baseUrl) {
-				let dlg = findRealDialog();
-				if (!dlg) return;
+				if (!me.modals.length)
+					return;
+				let dlg = me.modals[me.modals.length - 1];
 				let inst = dlg.instance; // include instance
 				if (inst && inst.modalRequery) {
 					if (baseUrl)
@@ -13322,17 +13271,15 @@ Vue.directive('resize', {
 			});
 
 			eventBus.$on('modalSetBase', function (baseUrl) {
-				let dlg = findRealDialog();
-				if (!dlg) return;
+				if (!me.modals.length)
+					return;
+				let dlg = me.modals[me.modals.length - 1];
 				dlg.url = baseUrl;
 			});
 
 			eventBus.$on('modalClose', function (result) {
 
 				if (!me.modals.length) return;
-				// not real! any.
-				if (me.requestsCount > 0) return;
-
 				const dlg = me.modals[me.modals.length - 1];
 
 				function closeImpl(closeResult) {
@@ -13349,7 +13296,7 @@ Vue.directive('resize', {
 				if (dlg.attrs.alwaysOk)
 					result = true;
 
-				if (dlg.attrs.canClose) { 
+				if (dlg.attrs.canClose) {
 					let canResult = dlg.attrs.canClose();
 					//console.dir(canResult);
 					if (canResult === true)
@@ -13387,70 +13334,22 @@ Vue.directive('resize', {
 				me.modals.push(dlg);
 				me.setupWrapper(dlg);
 			});
-
-			if (!this.menu) {
-				let dlgData = {
-					promise: null, data: {
-						message: locale.$AccessDenied, title: locale.$Error, style: 'alert'
-					}
-				};
-				eventBus.$emit('confirm', dlgData);
-				dlgData.promise.then(function () {
-					let root = window.$$rootUrl;
-					let url = urlTools.combine(root, '/account/login');
-					window.location.assign(url);
-				});
-				return;
-			}
-
-			this.sideBarCollapsed = this.sideBarInitialCollapsed;
-
-			let opts = { title: null, pages: this.pages };
-			let menuPath = urlTools.normalizeRoot(window.location.pathname);
-			// fix frequent error
-			if (menuPath === '/home' && this.menu && !this.menu.find(v => v.Url.toLowerCase() === 'home')) {
-				menuPath = '/';
-			}
-			let newUrl = menu.makeMenuUrl(this.menu, menuPath, opts);
-			newUrl = newUrl + window.location.search;
-			this.$store.commit('setstate', { url: newUrl, title: opts.title });
-
-			let firstUrl = {
-				url: '',
-				title: ''
-			};
-
-			firstUrl.url = menu.makeMenuUrl(this.menu, '/', opts);
-
-			firstUrl.title = opts.title;
-			urlTools.firstUrl = firstUrl;
-
-			function expand(elems) {
-				if (!elems) return;
-				for (let el of elems) {
-					if ('Menu' in el) {
-						platform.set(el, "$expanded", true);
-						expand(el.Menu);
-					}
-				}
-			}
-			expand(this.menu);
 		}
 	};
 
 	const shell = Vue.extend({
 		components: {
-			'a2-main-view': a2MainView,
-			'a2-app-header': a2AppHeader
+			'a2-main-view-mobile': a2MainViewMobile,
+			"a2-mobile-menu": a2MobileMenu
 		},
 		store,
 		data() {
 			return {
+				menuVisible: false,
 				requestsCount: 0,
-				loadsCount:0,
+				loadsCount: 0,
 				debugShowTrace: false,
 				debugShowModel: false,
-				feedbackVisible: false,
 				globalPeriod: null,
 				dataCounter: 0,
 				traceEnabled: log.traceEnabled()
@@ -13461,11 +13360,20 @@ Vue.directive('resize', {
 			modelStack() {
 				return this.__dataStack__;
 			},
-			singlePage() {
+			pageTitle() {
 				let seg0 = this.$store.getters.seg0;
-				if (menu.isSeparatePage(this.pages, seg0))
-					return seg0;
-				return undefined;
+				let seg1 = this.$store.getters.seg1;
+				for (let m of this.menu) {
+					if (m.Url === seg0) {
+						if (!seg1 || !m.Menu)
+							return m.Name;
+						for (let sm of m.Menu) {
+							if (sm.Url === seg1)
+								return `${m.Name} / ${sm.Name}`;
+						}
+					}
+				}
+				return '';
 			}
 		},
 		watch: {
@@ -13475,13 +13383,34 @@ Vue.directive('resize', {
 		},
 		methods: {
 			about() {
+				this.menuVisible = false;
 				this.$store.commit('navigate', { url: '/app/about' });
 			},
 			appLink(lnk) {
+				this.menuVisible = false;
 				this.$store.commit('navigate', { url: lnk.url });
 			},
 			navigate(url) {
 				this.$store.commit('navigate', { url: url });
+			},
+			showMenu() {
+				this.menuVisible = true;
+			},
+			hideMenu() {
+				this.menuVisible = false;
+			},
+			navigateMenu(url) {
+				this.navigate(url);
+				this.hideMenu();
+			},
+			root() {
+				let opts = { title: null };
+				let currentUrl = this.$store.getters.url;
+				let menuUrl = makeMenuUrl(this.menu, '/', opts);
+				if (currentUrl === menuUrl) {
+					return; // already in root
+				}
+				this.$store.commit('navigate', { url: makeMenuUrl(this.menu, '/', opts), title: opts.title });
 			},
 			debugOptions() {
 				alert('debug options');
@@ -13489,54 +13418,16 @@ Vue.directive('resize', {
 			debugTrace() {
 				if (!window.$$debug) return;
 				this.debugShowModel = false;
-				this.feedbackVisible = false;
 				this.debugShowTrace = !this.debugShowTrace;
 			},
 			debugModel() {
 				if (!window.$$debug) return;
 				this.debugShowTrace = false;
-				this.feedbackVisible = false;
 				this.debugShowModel = !this.debugShowModel;
 			},
 			debugClose() {
 				this.debugShowModel = false;
 				this.debugShowTrace = false;
-				this.feedbackVisible = false;
-			},
-			showFeedback() {
-				this.debugShowModel = false;
-				this.debugShowTrace = false;
-				this.feedbackVisible = !this.feedbackVisible;
-			},
-			feedbackClose() {
-				this.feedbackVisible = false;
-			},
-			profile() {
-				alert('user profile');
-			},
-			changeUser() {
-				alert('change user');
-			},
-			changePassword() {
-				if (window.cefHost) {
-					this.$alert(locale.$DesktopNotSupported);
-					return;
-				}
-
-				const dlgData = {
-					promise: null, data: { Id: -1 }
-				};
-				eventBus.$emit('modal', '/app/changePassword', dlgData);
-				dlgData.promise.then(function (result) {
-					if (result === false)
-						return;
-					//alert(result);
-					//console.dir(result);
-					eventBus.$emit('toast', {
-						text: locale.$ChangePasswordSuccess, style: 'success'
-					});
-
-				});
 			},
 			$alert(msg, title, list) {
 				let dlgData = {
@@ -13607,11 +13498,25 @@ Vue.directive('resize', {
 			});
 
 			eventBus.$on('closeAllPopups', popup.closeAll);
+
+			let opts = { title: null };
+			let newUrl = makeMenuUrl(this.menu, urlTools.normalizeRoot(window.location.pathname), opts);
+			newUrl = newUrl + window.location.search;
+			this.$store.commit('setstate', { url: newUrl, title: opts.title });
+
+			let firstUrl = {
+				url: '',
+				title: ''
+			};
+
+			firstUrl.url = makeMenuUrl(this.menu, '/', opts);
+			firstUrl.title = opts.title;
+			urlTools.firstUrl = firstUrl;
 		}
 	});
 
 	app.components['std:shellController'] = shell;
-})();
+})();	
 // Copyright © 2015-2019 Alex Kukhtin. All rights reserved.
 
 /*20181115-7578*/

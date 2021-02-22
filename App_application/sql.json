@@ -1,0 +1,17 @@
+[
+	{
+		"$schema": "@schemas/sql-json-schema.json#",
+		"name": "full",
+		"version": "10.0.0021",
+		"outputFile": "@sql/sample_full.sql",
+		"inputFiles": [
+			"sample/_sql/schemas.sql",
+			"sample/_sql/tables.sql",
+			"sample/_sql/types.sql",
+			"sample/_sql/ui.sql",
+			"sample/catalog/agent/model.sql",
+			"sample/catalog/product/model.sql",
+			"sample/document/model.sql"
+		]
+	}
+]

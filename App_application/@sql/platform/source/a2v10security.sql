@@ -1,17 +1,18 @@
 ﻿/*
 ------------------------------------------------
-Copyright © 2008-2019 Alex Kukhtin
+Copyright © 2008-2021 Alex Kukhtin
 
-Last updated : 23 dec 2019
-module version : 7598
+Last updated : 21 feb 2021
+module version : 7749
 */
 ------------------------------------------------
 begin
 	set nocount on;
+	declare @Version int = 7749;
 	if not exists(select * from a2sys.Versions where Module = N'std:security')
-		insert into a2sys.Versions (Module, [Version]) values (N'std:security', 7598);
+		insert into a2sys.Versions (Module, [Version]) values (N'std:security', @Version);
 	else
-		update a2sys.Versions set [Version] = 7598 where Module = N'std:security';
+		update a2sys.Versions set [Version] = @Version where Module = N'std:security';
 end
 go
 ------------------------------------------------
@@ -142,6 +143,7 @@ begin
 		Void bit not null constraint DF_Users_Void default(0),
 		SecurityStamp nvarchar(max)	not null,
 		PasswordHash nvarchar(max)	null,
+		ApiUser bit not null constraint DF_Users_ApiUser default(0),
 		TwoFactorEnabled bit not null constraint DF_Users_TwoFactorEnabled default(0),
 		Email nvarchar(255)	null,
 		EmailConfirmed bit not null constraint DF_Users_EmailConfirmed default(0),
@@ -170,6 +172,11 @@ go
 if not exists(select * from INFORMATION_SCHEMA.COLUMNS where TABLE_SCHEMA=N'a2security' and TABLE_NAME=N'Users' and COLUMN_NAME=N'DateCreated')
 	alter table a2security.Users add DateCreated datetime null
 			constraint DF_Users_DateCreated default(a2sys.fn_getCurrentDate());
+go
+------------------------------------------------
+if not exists(select * from INFORMATION_SCHEMA.COLUMNS where TABLE_SCHEMA=N'a2security' and TABLE_NAME=N'Users' and COLUMN_NAME=N'ApiUser')
+	alter table a2security.Users add ApiUser bit not null 
+		constraint DF_Users_ApiUser default(0) with values;
 go
 ------------------------------------------------
 if not exists(select * from INFORMATION_SCHEMA.TABLES where TABLE_SCHEMA=N'a2security' and TABLE_NAME=N'UserLogins')
@@ -341,6 +348,28 @@ begin
 end
 go
 ------------------------------------------------
+if not exists(select * from INFORMATION_SCHEMA.TABLES where TABLE_SCHEMA=N'a2security' and TABLE_NAME=N'ApiUserLogins')
+begin
+	create table a2security.ApiUserLogins
+	(
+		[User] bigint not null 
+			constraint FK_ApiUserLogins_User_Users foreign key references a2security.Users(Id),
+		[Mode] nvarchar(16) not null, -- ApiKey, OAuth2, JWT
+		[ClientId] nvarchar(255),
+		[ClientSecret] nvarchar(255),
+		[ApiKey] nvarchar(255),
+		[AllowIP] nvarchar(1024),
+		Memo nvarchar(255),
+		[DateModified] datetime not null constraint DF_ApiUserLogins_DateModified default(a2sys.fn_getCurrentDate()),
+		constraint PK_ApiUserLogins primary key([User], Mode)
+	);
+end
+go
+------------------------------------------------
+if not exists (select * from sys.indexes where object_id = object_id(N'a2security.ApiUserLogins') and name = N'UNQ_ApiUserLogins_ApiKey')
+	create unique index UNQ_ApiUserLogins_ApiKey on a2security.ApiUserLogins(ApiKey) where ApiKey is not null;
+go
+------------------------------------------------
 if not exists(select * from INFORMATION_SCHEMA.SEQUENCES where SEQUENCE_SCHEMA=N'a2security' and SEQUENCE_NAME=N'SQ_Acl')
 	create sequence a2security.SQ_Acl as bigint start with 100 increment by 1;
 go
@@ -396,6 +425,7 @@ begin
 		EventTime	datetime not null
 			constraint DF_Log_EventTime2 default(a2sys.fn_getCurrentDate()),
 		Severity nchar(1) not null,
+		Host nvarchar(255) null,
 		[Message] nvarchar(max) sparse null
 	);
 end
@@ -406,6 +436,10 @@ begin
 	alter table a2security.[Log] add Code int not null
 		constraint FK_Log_Code_Codes foreign key references a2security.LogCodes(Code);
 end
+go
+------------------------------------------------
+if not exists(select * from INFORMATION_SCHEMA.COLUMNS where TABLE_SCHEMA=N'a2security' and TABLE_NAME=N'Log' and COLUMN_NAME=N'Host')
+	alter table a2security.[Log] add Host nvarchar(255) null;
 go
 ------------------------------------------------
 if exists(select * from sys.default_constraints where name=N'DF_Log_UtcEventTime' and parent_object_id = object_id(N'a2security.Log'))
@@ -463,11 +497,11 @@ as
 		LockoutEnabled, AccessFailedCount, LockoutEndDateUtc, TwoFactorEnabled, [Locale],
 		PersonName, Memo, Void, LastLoginDate, LastLoginHost, Tenant, EmailConfirmed,
 		PhoneNumberConfirmed, RegisterHost, ChangePasswordEnabled, TariffPlan, Segment,
-		IsAdmin = cast(case when ug.GroupId = 77 /*predefined*/ then 1 else 0 end as bit),
+		IsAdmin = cast(case when ug.GroupId = 77 /*predefined: admins*/ then 1 else 0 end as bit),
 		IsTenantAdmin = cast(case when exists(select * from a2security.Tenants where [Admin] = u.Id) then 1 else 0 end as bit)
 	from a2security.Users u
-		left join a2security.UserGroups ug on u.Id = ug.UserId and ug.GroupId=77
-	where Void=0 and Id <> 0;
+		left join a2security.UserGroups ug on u.Id = ug.UserId and ug.GroupId=77 /*predefined: admins*/
+	where Void=0 and Id <> 0 and ApiUser = 0;
 go
 ------------------------------------------------
 if exists (select * from INFORMATION_SCHEMA.ROUTINES where ROUTINE_SCHEMA=N'a2security' and ROUTINE_NAME=N'WriteLog')
@@ -484,6 +518,7 @@ begin
 	set nocount on;
 	set transaction isolation level read committed;
 	set xact_abort on;
+
 	insert into a2security.[Log] (UserId, Severity, [Code] , [Message]) 
 		values (isnull(@UserId, 0 /*system user*/), @SeverityChar, @Code, @Message);
 end
@@ -582,6 +617,44 @@ begin
 end
 go
 ------------------------------------------------
+if exists (select * from INFORMATION_SCHEMA.ROUTINES where ROUTINE_SCHEMA=N'a2security' and ROUTINE_NAME=N'FindApiUserByApiKey')
+	drop procedure a2security.FindApiUserByApiKey
+go
+------------------------------------------------
+create procedure a2security.FindApiUserByApiKey
+@Host nvarchar(255) = null,
+@ApiKey nvarchar(255) = null
+as
+begin
+	set nocount on;
+	set transaction isolation level read committed;
+
+	declare @status nvarchar(255);
+	declare @code int;
+
+	set @status = N'ApiKey=' + @ApiKey;
+	set @code = 65; /*fail*/
+
+	declare @user table(Id bigint, Tenant int, Segment nvarchar(255), [Name] nvarchar(255), ClientId nvarchar(255), AllowIP nvarchar(255));
+	insert into @user(Id, Tenant, Segment, [Name], ClientId, AllowIP)
+	select top(1) u.Id, u.Tenant, Segment, [Name]=u.UserName, s.ClientId, s.AllowIP 
+	from a2security.Users u inner join a2security.ApiUserLogins s on u.Id = s.[User]
+	where u.Void=0 and s.Mode = N'ApiKey' and s.ApiKey=@ApiKey;
+	
+	if @@rowcount > 0 
+	begin
+		set @code = 64 /*sucess*/;
+		update a2security.Users set LastLoginDate=getutcdate(), LastLoginHost=@Host
+		from @user t inner join a2security.Users u on t.Id = u.Id;
+	end
+
+	insert into a2security.[Log] (UserId, Severity, Code, Host, [Message])
+		values (0, N'I', @code, @Host, @status);
+
+	select * from @user;
+end
+go
+------------------------------------------------
 if exists (select * from INFORMATION_SCHEMA.ROUTINES where ROUTINE_SCHEMA=N'a2security' and ROUTINE_NAME=N'UpdateUserPassword')
 	drop procedure a2security.UpdateUserPassword
 go
@@ -595,6 +668,7 @@ begin
 	set nocount on;
 	set transaction isolation level read committed;
 	set xact_abort on;
+
 	update a2security.ViewUsers set PasswordHash = @PasswordHash, SecurityStamp = @SecurityStamp where Id=@Id;
 	exec a2security.[WriteLog] @Id, N'I', 15; /*PasswordUpdated*/
 end
@@ -900,7 +974,10 @@ begin
 		(15, N'PasswordUpdated'     ), 
 		(18, N'AccessFailedCount'   ), 
 		(26, N'EmailConfirmed'      ), 
-		(27, N'PhoneNumberConfirmed');
+		(27, N'PhoneNumberConfirmed'),
+		(64, N'ApiKey: Success'     ), 
+		(65, N'ApiKey: Fail'        ),
+		(66, N'ApiKey: IP forbidden'); 
 
 	merge into a2security.[LogCodes] t
 	using @codes s on s.Code = t.Code
@@ -942,7 +1019,7 @@ create procedure a2security.DeleteUser
 as
 begin
 	set nocount on;
-	set transaction isolation level serializable;
+	set transaction isolation level read committed;
 	set xact_abort on;
 	declare @TenantAdmin bigint;
 	select @TenantAdmin = [Admin] from a2security.Tenants where Id = @Tenant;
@@ -1039,6 +1116,91 @@ begin
 		update a2security.License set [Text]=@License, DateModified = a2sys.fn_getCurrentDate();
 	else
 		insert into a2security.License ([Text]) values (@License);
+end
+go
+------------------------------------------------
+if not exists(select * from INFORMATION_SCHEMA.SEQUENCES where SEQUENCE_SCHEMA=N'a2security' and SEQUENCE_NAME=N'SQ_Companies')
+	create sequence a2security.SQ_Companies as bigint start with 100 increment by 1;
+go
+------------------------------------------------
+if not exists(select * from INFORMATION_SCHEMA.TABLES where TABLE_SCHEMA=N'a2security' and TABLE_NAME=N'Companies')
+begin
+	create table a2security.Companies
+	(
+		Id	bigint not null constraint PK_Companies primary key
+			constraint DF_Companies_PK default(next value for a2security.SQ_Companies),
+		[Name] nvarchar(255) null,
+		Memo nvarchar(255) null
+	);
+end
+go
+------------------------------------------------
+if not exists(select * from INFORMATION_SCHEMA.TABLES where TABLE_SCHEMA=N'a2security' and TABLE_NAME=N'UserCompanies')
+begin
+	create table a2security.[UserCompanies]
+	(
+		[User] bigint not null
+			constraint FK_UserCompanies_User_Users foreign key references a2security.Users(Id),
+		[Company] bigint not null
+			constraint FK_UserCompanies_Company_Companies foreign key references a2security.Companies(Id),
+		[Enabled] bit,
+		[Current] bit,
+		constraint PK_UserCompanies primary key([User], [Company])
+	);
+end
+go
+------------------------------------------------
+if exists (select * from INFORMATION_SCHEMA.ROUTINES where ROUTINE_SCHEMA=N'a2security' and ROUTINE_NAME=N'User.Companies')
+	drop procedure a2security.[User.Companies]
+go
+------------------------------------------------
+create procedure a2security.[User.Companies]
+@UserId bigint
+as
+begin
+	set nocount on;
+	set transaction isolation level read uncommitted;
+
+	-- all companies for the current user
+	select [Companies!TCompany!Array] = null, Id, [Name], [Current]
+	from a2security.Companies c
+		inner join a2security.UserCompanies uc on uc.Company = c.Id
+	where uc.[User] = @UserId and uc.[Enabled] = 1
+	order by Id;
+end
+go
+------------------------------------------------
+if exists (select * from INFORMATION_SCHEMA.ROUTINES where ROUTINE_SCHEMA=N'a2security' and ROUTINE_NAME=N'User.SwitchToCompany')
+	drop procedure a2security.[User.SwitchToCompany]
+go
+------------------------------------------------
+create procedure a2security.[User.SwitchToCompany]
+@UserId bigint,
+@CompanyId bigint
+as
+begin
+	set nocount on;
+	set transaction isolation level read committed;
+	set xact_abort on;
+	update a2security.UserCompanies set 
+		[Current] = case when Company = @CompanyId then 1 else 0 end
+	where [User] = @UserId;
+end
+go
+------------------------------------------------
+if exists (select * from INFORMATION_SCHEMA.ROUTINES where ROUTINE_SCHEMA=N'a2security' and ROUTINE_NAME=N'User.Company.Load')
+	drop procedure a2security.[User.Company.Load]
+go
+------------------------------------------------
+create procedure a2security.[User.Company.Load]
+@UserId bigint
+as
+begin
+	set nocount on;
+	set transaction isolation level read committed;
+	set xact_abort on;
+	select [UserCompany!TCompany!Object] = null, Company from a2security.UserCompanies 
+	where [User]=@UserId and [Current]=1
 end
 go
 ------------------------------------------------

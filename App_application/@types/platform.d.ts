@@ -1,6 +1,6 @@
 ﻿
-/* Copyright © 2019-2020 Alex Kukhtin. All rights reserved. */
-/* Version 10.0.7645 */
+/* Copyright © 2019-2021 Alex Kukhtin. All rights reserved. */
+/* Version 10.0.7745 */
 
 
 declare function require(url: string): any;
@@ -38,11 +38,13 @@ interface IArrayElement extends IElement {
 	$selected: boolean;
 	$checked: boolean;
 	$remove(): void;
-	$select(): void;
+	$select(root?: IElementArray<IElement>): void;
 }
 
 interface ITreeElement extends IArrayElement {
 	$expanded: boolean;
+	$expand<T>(this: T): Promise<IElementArray<T>>;
+	$selectPath<T>(this: T, path: Array<any>, predicate: (item: T, val: any) => boolean): Promise<T>;
 }
 
 declare const enum InsertTo {
@@ -52,40 +54,59 @@ declare const enum InsertTo {
 	below = 'below'
 }
 
+declare const enum SortDir {
+	asc = 'asc',
+	desc = 'desc'
+}
+
 interface IModelInfo {
-	Filter: any;
+	Filter?: any;
+	PageSize?: number;
+	Offset?: number;
+	SortDir?: SortDir
+	SortOrder: string;
 }
 
 interface IElementArray<T> extends Array<T> {
-	[index: number]: T;
 
 	readonly Count: number;
+
+	readonly $parent: IElement;
+	readonly $vm: IViewModel;
+	readonly $root: IRoot;
+	readonly $ctrl: IController;
+
 	readonly $isEmpty: boolean;
 	readonly $hasSelected: boolean;
 	readonly $checked: IElementArray<T>;
 	readonly $selected: T;
 	readonly $selectedIndex: number;
-	readonly $parent: IElement;
 	readonly $cross: { [prop: string]: string[] };
 	readonly $ModelInfo: IModelInfo;
+	readonly $loaded: boolean;
 
 	Selected(prop: string): IElementArray<T>;
 
+	$new(src?: object): T;
 	$append(src?: object): T;
 	$prepend(src?: object): T;
 	$insert(src: object, to: InsertTo, ref?: T): T;
 
 	$clearSelected(): IElementArray<T>;
+	$reload(): Promise<IElementArray<T>>;
 	$load(): void;
 	$loadLazy(): Promise<IElementArray<T>>;
 	$resetLazy(): IElementArray<T>;
+	$lockUpdate(lock: boolean): void;
 
 	$isLazy(): boolean;
 
+	$find(callback: (this: any, elem: T, index?: number, array?: IElementArray<T>) => boolean, thisArg?: any): T;
 	$remove(elem: T): IElementArray<T>;
 	$empty(): IElementArray<T>;
 	$renumberRows(): IElementArray<T>;
 	$copy(src: any[]): IElementArray<T>;
+	$sum(fn: (item: T) => number): number;
 }
 
 interface IRoot extends IElement {
@@ -94,16 +115,17 @@ interface IRoot extends IElement {
 	readonly $isCopy: boolean;
 	readonly $ready: boolean;
 	readonly $template: Template;
+	readonly $dirty: boolean;
 
 	$defer(handler: () => any): void;
 	$emit(event: string, ...params: any[]): void;
 	$forceValidate(): void;
 	$setDirty(dirty: boolean, path?: string): void;
+	$createModelInfo(elem: IElementArray<IElement>, modelInfo: IModelInfo): IModelInfo;
 }
 
 
 /* template commands */
-
 declare const enum TemplateCommandResult {
 	save = 'save'
 }
@@ -115,6 +137,8 @@ interface templateCommandObj {
 	canExec?: (this: IRoot, arg?: any) => boolean;
 	confirm?: string | IConfirm;
 	saveRequired?: boolean;
+	validRequired?: boolean;
+	checkReadOnly?: boolean;
 }
 
 declare type templateCommand = templateCommandFunc | templateCommandObj;
@@ -162,6 +186,10 @@ declare const enum MessageStyle {
 	info = 'info'
 }
 
+/* template defaults */
+interface templateDefaultFunc { (this: IRoot, elem: IElement, prop: string): any; }
+declare type templateDefault = templateDefaultFunc | string | number | boolean | Date | object;
+
 /* template validators */
 
 interface tempateValidatorFunc { (elem: IElement, value?: any): boolean | string | Promise<any>; }
@@ -171,7 +199,8 @@ interface templateValidatorObj {
 	async?: boolean,
 	msg?: string,
 	regExp?: RegExp,
-	severity?: Severity
+	severity?: Severity,
+	applyIf?: (elem: IElement, value?: any) => boolean
 }
 
 declare type templateValidator = String | tempateValidatorFunc | templateValidatorObj;
@@ -180,11 +209,15 @@ interface Template {
 	options?: {
 		noDirty?: boolean,
 		persistSelect?: string[],
-		skipDirty?: string[]
+		skipDirty?: string[],
+		bindOnce?: string[]
 	};
 	properties?: {
 		[prop: string]: templateProperty
 	};
+	defaults?: {
+		[prop: string]: templateDefault
+	},
 	validators?: {
 		[prop: string]: templateValidator | templateValidator[]
 	};
@@ -202,14 +235,14 @@ interface Template {
 interface IController {
 	$save(): Promise<object>;
 	$requery(): void;
-	$reload(args?: any): void;
-	$invoke(command: string, arg: object, path?: string, opts?: { catchError: boolean }): Promise<object>;
+	$reload(args?: any): Promise<void>;
+	$invoke(command: string, arg: object, path?: string, opts?: { catchError: boolean }): Promise<any>;
 	$close(): void;
 	$modalClose(result?: any): any;
 	$msg(msg: string, title?: string, style?: CommonStyle): Promise<boolean>;
 	$alert(msg: string | IMessage): Promise<boolean>;
 	$confirm(msg: string | IConfirm): Promise<boolean>;
-	$showDialog(url: string, data?: object, query?: object): Promise<object>;
+	$showDialog(url: string, data?: object, query?: object): Promise<any>;
 	$inlineOpen(id: string): void;
 	$inlineClose(id: string, result?: any): void;
 	$saveModified(msg?: string, title?: string): boolean;
@@ -219,7 +252,8 @@ interface IController {
 	$notifyOwner(id: any, toast?: string | { text: string, style?: CommonStyle }): void;
 	$navigate(url: string, data?: object, newWindow?: boolean, updateAfter?: IElementArray<IElement>): void;
 	$defer(handler: () => void): void;
-	$setFilter(target: object, prop: string, value: any): void;
+	$setFilter(target: any, prop: string, value: any): void;
+	$expand(elem: ITreeElement, prop: string, value: boolean): Promise<any>;
 }
 
 interface IMessage {
@@ -231,6 +265,7 @@ interface IMessage {
 interface IConfirm {
 	msg: string;
 	style?: MessageStyle;
+	list?: string[];
 }
 
 interface IErrorInfo {
@@ -241,11 +276,17 @@ interface IErrorInfo {
 }
 
 interface IViewModel extends IController {
+	readonly $isLoading: boolean;
+	readonly $isDirty: boolean;
+	readonly $isPristine: boolean;
+	readonly $canSave: boolean;
 	$errorMessage(path: string): string;
 	$hasError(path: string): boolean;
 	$getErrors(severity: Severity): IErrorInfo[] | null;
 	$dbRemove(elem: object, confirm?: string | IConfirm, opts?: { checkPermission: boolean }): void;
 	$dbRemoveSelected(arr: object[], confirm?: string | IConfirm, opts?: { checkPermission: boolean }): void;
+	$setCurrentUrl(url: string): void;
+	$export(arg: any, url: string, data?: any, opts?: { saveRequired: boolean }): void;
 }
 
 // utilities
@@ -272,7 +313,9 @@ declare const enum DateTimeUnit {
 declare const enum DateUnit {
 	year = 'year',
 	month = 'month',
-	day = 'day'
+	day = 'day',
+	minute = 'minute',
+	second = 'second'
 }
 
 
@@ -281,6 +324,7 @@ interface UtilsDate {
 	readonly maxDate: Date;
 
 	today(): Date,
+	now(seconds?: boolean): Date,
 	zero(): Date,
 	equal(d1: Date, d2: Date): boolean;
 	isZero(d: Date): boolean;
@@ -298,7 +342,10 @@ interface UtilsDate {
 
 interface UtilsText {
 	contains(text: string, probe: string): boolean;
+	containsText(obj: object, props: string, probe: string): boolean;
 	capitalize(text: string): string;
+	equalNoCase(s1: string, s2: string): boolean;
+	maxChars(s1: string, len: number): string;
 }
 
 interface UtilsCurrency {

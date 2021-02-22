@@ -1,16 +1,16 @@
 /*
-Copyright © 2008-2019 Alex Kukhtin
+Copyright © 2008-2021 Alex Kukhtin
 
-Last updated : 21 dec 2019
-module version : 7550
+Last updated : 31 jan 2021
+module version : 7675
 */
 ------------------------------------------------
 begin
 	set nocount on;
 	if not exists(select * from a2sys.Versions where Module = N'std:ui')
-		insert into a2sys.Versions (Module, [Version]) values (N'std:ui', 7550);
+		insert into a2sys.Versions (Module, [Version]) values (N'std:ui', 7675);
 	else
-		update a2sys.Versions set [Version] = 7550 where Module = N'std:ui';
+		update a2sys.Versions set [Version] = 7675 where Module = N'std:ui';
 	end
 go
 ------------------------------------------------
@@ -149,10 +149,13 @@ begin
 	where a.UserId = @UserId and a.CanView = 1
 	order by RT.[Level], m.[Order], RT.[Id];
 
+	-- companies
+	exec a2security.[User.Companies] @UserId = @UserId;
+
 	-- system parameters
-	select [SysParams!TParam!Object]= null, [AppTitle], [AppSubTitle], [SideBarMode], [Pages]
+	select [SysParams!TParam!Object]= null, [AppTitle], [AppSubTitle], [SideBarMode], [NavBarMode], [Pages]
 	from (select Name, Value=StringValue from a2sys.SysParams) as s
-		pivot (min(Value) for Name in ([AppTitle], [AppSubTitle], [SideBarMode], [Pages])) as p;
+		pivot (min(Value) for Name in ([AppTitle], [AppSubTitle], [SideBarMode], [NavBarMode], [Pages])) as p;
 end
 go
 ------------------------------------------------
@@ -357,6 +360,63 @@ begin
 		 insert into a2security.Acl ([Object], ObjectId, UserId, CanView) values (N'std:menu', @MenuId, @UserId, -1);
 	else if @Visible = 1
 		delete from a2security.Acl where [Object] = N'std:menu' and ObjectId = @MenuId and UserId = @UserId;
+end
+go
+------------------------------------------------
+if not exists(select * from INFORMATION_SCHEMA.DOMAINS where DOMAIN_SCHEMA = N'a2ui' and DOMAIN_NAME = N'Menu2.TableType')
+exec sp_executesql N'
+create type a2ui.[Menu2.TableType] as table
+(
+	Id bigint,
+	Parent bigint,
+	[Key] nchar(4),
+	[Feature] nchar(4),
+	[Name] nvarchar(255),
+	[Url] nvarchar(255),
+	Icon nvarchar(255),
+	[Model] nvarchar(255),
+	[Order] int,
+	[Description] nvarchar(255),
+	[Help] nvarchar(255),
+	Params nvarchar(255)
+)';
+go
+------------------------------------------------
+if exists (select * from INFORMATION_SCHEMA.ROUTINES where ROUTINE_SCHEMA=N'a2ui' and ROUTINE_NAME=N'Menu.Merge')
+	drop procedure a2ui.[Menu.Merge]
+go
+------------------------------------------------
+create procedure a2ui.[Menu.Merge]
+@Menu a2ui.[Menu2.TableType] readonly,
+@Start bigint,
+@End bigint
+as
+begin
+	with T as (
+		select * from a2ui.Menu where Id >=@Start and Id <= @End
+	)
+	merge T as t
+	using @Menu as s
+	on t.Id = s.Id 
+	when matched then
+		update set
+			t.Id = s.Id,
+			t.Parent = s.Parent,
+			t.[Key] = s.[Key],
+			t.[Name] = s.[Name],
+			t.[Url] = s.[Url],
+			t.[Icon] = s.Icon,
+			t.[Order] = s.[Order],
+			t.Feature = s.Feature,
+			t.Model = s.Model,
+			t.[Description] = s.[Description],
+			t.Help = s.Help,
+			t.Params = s.Params
+	when not matched by target then
+		insert(Id, Parent, [Key], [Name], [Url], Icon, [Order], Feature, Model, [Description], Help, Params) values 
+		(Id, Parent, [Key], [Name], [Url], Icon, [Order], Feature, Model, [Description], Help, Params)
+	when not matched by source and t.Id >= @Start and t.Id < @End then 
+		delete;
 end
 go
 ------------------------------------------------

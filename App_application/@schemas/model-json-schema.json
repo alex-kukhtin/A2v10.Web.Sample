@@ -1,6 +1,6 @@
 ﻿{
 	"$schema": "http://json-schema.org/draft-04/schema",
-	"$version": "10.0.7646",
+	"$version": "10.0.7748",
 	"title": "JSON Schema for model.json",
 	"type": "object",
 
@@ -26,6 +26,9 @@
 						"view": { "type": "string" },
 						"viewMobile": { "type": "string" },
 						"template": { "type": "string" },
+						"checkTypes": { "type": "string" },
+						"processDbEvents": { "type": "boolean" },
+						"commandTimeout": { "type": "number" },
 						"merge": {
 							"type": "object",
 							"properties": {
@@ -35,6 +38,19 @@
 							},
 							"additionalProperties": false
 						},
+						"events": {
+							"type": "object",
+							"properties": {
+								"afterSave": {
+									"type": "object",
+									"properties": {
+										"source": { "type": "string" },
+										"schema": { "type": "string" },
+										"model": { "type": "string" }
+									}
+								}
+							}
+						},
 						"export": {
 							"type": "object",
 							"properties": {
@@ -42,8 +58,9 @@
 								"fileName": { "type": "string" },
 								"format": {
 									"type": "string",
-									"enum": [ "xlsx" ]
-								}
+									"enum": [ "xlsx", "dbf", "csv" ]
+								},
+								"encoding": { "type": "string" }
 							},
 							"additionalProperties": false
 						},
@@ -64,8 +81,12 @@
 						"schema": { "type": "string" },
 						"model": { "type": "string" },
 						"view": { "type": "string" },
+						"viewMobile": { "type": "string" },
 						"template": { "type": "string" },
 						"copy": { "type": "boolean" },
+						"checkTypes": { "type": "string" },
+						"processDbEvents": { "type": "boolean" },
+						"commandTimeout": { "type": "number" },
 						"hook": {
 							"type": "string",
 							"pattern": "^\\s*clr-type\\s*:\\s*([\\w\\.]+)\\s*;\\s*assembly\\s*=\\s*([\\w\\.]+)\\s*$"
@@ -85,6 +106,7 @@
 							},
 							"additionalProperties": false
 						},
+						"twoPhase": { "type": "boolean" },
 						"parameters": { "type": "object" }
 					},
 					"additionalProperties": false
@@ -101,7 +123,11 @@
 						"source": { "type": "string" },
 						"model": { "type": "string" },
 						"view": { "type": "string" },
-						"template": { "type": "string" }
+						"viewMobile": { "type": "string" },
+						"template": { "type": "string" },
+						"checkTypes": { "type": "string" },
+						"processDbEvents": { "type": "boolean" },
+						"commandTimeout": { "type": "number" }
 					},
 					"additionalProperties": false
 				}
@@ -115,13 +141,16 @@
 					"properties": {
 						"type": {
 							"type": "string",
-							"enum": [ "sql", "clr", "script", "xml", "startProcess", "resumeProcess", "callApi", "file" ]
+							"enum": [ "sql", "clr", "script", "xml", "startProcess", "resumeProcess", "callApi", "file", "sendMessage", "javascript", "processDbEvents" ]
 						},
 						"schema": { "type": "string" },
 						"source": { "type": "string" },
 						"model": { "type": "string" },
 						"command": { "type": "string" },
 						"procedure": { "type": "string" },
+						"checkTypes": { "type": "string" },
+						"processDbEvents": { "type": "boolean" },
+						"commandTimeout": { "type": "number" },
 						"clrType": {
 							"type": "string",
 							"pattern": "^\\s*clr-type\\s*:\\s*([\\w\\.]+)\\s*;\\s*assembly\\s*=\\s*([\\w\\.]+)\\s*$"
@@ -138,7 +167,9 @@
 						"authorize": { "type": "boolean" },
 						"allowOrigin": { "type": "string" },
 						"errorCode": { "type": "number" },
-						"parameters": { "type": "object" }
+						"parameters": { "type": "object" },
+						"args": { "type": "object" },
+						"file": { "type": "string" }
 					},
 					"additionalProperties": false
 				}
@@ -152,8 +183,10 @@
 					"properties": {
 						"schema": { "type": "string" },
 						"source": { "type": "string" },
+						"model": { "type": "string" },
 						"name": { "type": "string" },
 						"report": { "type": "string" },
+						"checkTypes": { "type": "string" },
 						"type": {
 							"type": "string",
 							"enum": [ "stimulsoft" ]
@@ -172,16 +205,41 @@
 						"model": { "type": "string" },
 						"type": {
 							"type": "string",
-							"enum": [ "parse", "clr" ]
+							"enum": [ "parse", "clr", "sql", "azureBlob" ]
 						},
 						"parse": {
 							"type": "string",
-							"enum": [ "excel" ]
+							"enum": [ "excel", "xlsx", "csv", "dbf", "xml", "auto" ]
 						},
 						"async": { "type": "boolean" },
 						"clrType": {
 							"type": "string",
 							"pattern": "^\\s*clr-type\\s*:\\s*([\\w\\.]+)\\s*;\\s*assembly\\s*=\\s*([\\w\\.]+)\\s*$"
+						},
+						"container": { "type": "string" },
+						"azureSource": { "type": "string" },
+						"imageCompress": {
+							"type": "object",
+							"properties": {
+								"quality": { "type": "number" },
+								"threshold": { "type": "number" }
+							}
+						},
+						"availableModels": {
+							"type": "array",
+							"items": {
+								"type": "object",
+								"properties": {
+									"name": { "type": "string" },
+									"columns": { "type": "string" },
+									"source": { "type": "string" },
+									"schema": { "type": "string" },
+									"model": { "type": "string" },
+									"checkTypes": { "type": "string" },
+									"parameters": { "type": "object" }
+								},
+								"additionalProperties": false
+							}
 						}
 					},
 					"additionalProperties": false
