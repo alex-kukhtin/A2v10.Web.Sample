@@ -1,6 +1,6 @@
 ﻿
 /* Copyright © 2019-2021 Alex Kukhtin. All rights reserved. */
-/* Version 10.0.7745 */
+/* Version 10.0.7768 */
 
 
 declare function require(url: string): any;
@@ -192,7 +192,9 @@ declare type templateDefault = templateDefaultFunc | string | number | boolean |
 
 /* template validators */
 
-interface tempateValidatorFunc { (elem: IElement, value?: any): boolean | string | Promise<any>; }
+declare type templateValidatorResult = { msg: string, severity: Severity };
+
+interface tempateValidatorFunc { (elem: IElement, value?: any): boolean | string | templateValidatorResult | Promise<any>; }
 
 interface templateValidatorObj {
 	valid: tempateValidatorFunc | StdValidator,
@@ -232,6 +234,14 @@ interface Template {
 	};
 }
 
+declare const enum ReportFormat {
+	'pdf' = "pdf",
+	'Excel' = 'excel',
+	'Word' = 'word',
+	'OpenText' = 'opentext',
+	'OpenSheet' = 'opensheet'
+}
+
 interface IController {
 	$save(): Promise<object>;
 	$requery(): void;
@@ -254,6 +264,8 @@ interface IController {
 	$defer(handler: () => void): void;
 	$setFilter(target: any, prop: string, value: any): void;
 	$expand(elem: ITreeElement, prop: string, value: boolean): Promise<any>;
+	$focus(htmlid: string): void;
+	$report(report: string, arg: object, opts?: { export?: Boolean, attach?: Boolean, print?: Boolean, format?: ReportFormat }, url?: string, data?: object): void;
 }
 
 interface IMessage {

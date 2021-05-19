@@ -179,9 +179,9 @@ app.modules['std:const'] = function () {
 
 
 
-// Copyright © 2015-2020 Alex Kukhtin. All rights reserved.
+// Copyright © 2015-2021 Alex Kukhtin. All rights reserved.
 
-// 20200925-7708
+// 20210414-7765
 // services/utils.js
 
 app.modules['std:utils'] = function () {
@@ -593,14 +593,14 @@ app.modules['std:utils'] = function () {
 
 	function timeParse(str) {
 		str = str || '';
-		if (!str) return dateZero();
 		let seg = str.split(/[^\d]/).filter(x => x);
-		if (seg.length === 1) {
+		if (seg.length === 0)
+			return new Date(1970, 0, 1, 0, 0, 0, 0);
+		else if (seg.length === 1)
 			seg.push('0');
-		}
 		let h = Math.min(+seg[0], 23);
 		let m = Math.min(+seg[1], 59);
-		let td = new Date(0, 0, 1, h, m, 0, 0);
+		let td = new Date(1970, 0, 1, h, m, 0, 0);
 		return td;
 	}
 
@@ -613,9 +613,19 @@ app.modules['std:utils'] = function () {
 		let today = dateToday();
 		let seg = str.split(/[^\d]/).filter(x => x);
 		if (seg.length === 1) {
-			seg.push('' + (today.getMonth() + 1));
-			seg.push('' + today.getFullYear());
-		} else if (seg.length === 2) {
+			if (seg[0].length === 8) {
+				//ddmmyyyy
+				let x = seg[0];
+				seg = [];
+				seg.push(x.substring(0, 2)); // day
+				seg.push(x.substring(2, 4)); // month
+				seg.push(x.substring(4)); // year
+			} else {
+				seg.push('' + (today.getMonth() + 1));
+				seg.push('' + today.getFullYear());
+			}
+		}
+		else if (seg.length === 2) {
 			seg.push('' + today.getFullYear());
 		}
 
@@ -717,8 +727,7 @@ app.modules['std:utils'] = function () {
 		var du = 0;
 		switch (unit) {
 			case 'year':
-				// TODO: check getTimezone
-				return new Date(dt.getFullYear() + nm, dt.getMonth(), dt.getDate(), 0, 0, 0, 0);
+				return new Date(Date.UTC(dt.getFullYear() + nm, dt.getMonth(), dt.getDate(), 0, 0, 0, 0));
 			case 'month':
 				// save day of month
 				let newMonth = dt.getMonth() + nm;
@@ -1968,9 +1977,9 @@ app.modules['std:console'] = function () {
 		}
 	}
 };
-// Copyright © 2015-2019 Alex Kukhtin. All rights reserved.
+// Copyright © 2015-2021 Alex Kukhtin. All rights reserved.
 
-/*20191122-7587*/
+/*20210223-7751*/
 /*validators.js*/
 
 app.modules['std:validators'] = function () {
@@ -2113,6 +2122,9 @@ app.modules['std:validators'] = function () {
 				}
 				else if (utils.isString(vr)) {
 					retval.push({ msg: vr, severity: sev });
+				}
+				else if (utils.isObjectExact(vr)) {
+					retval.push({ msg: vr.msg, severity: vr.severity });
 				}
 				else if (!vr) {
 					retval.push({ msg: rule.msg, severity: sev });
@@ -3715,14 +3727,13 @@ app.modules['std:impl:array'] = function () {
 })();
 
 
-// Copyright © 2015-2018 Alex Kukhtin. All rights reserved.
+// Copyright © 2015-2021 Alex Kukhtin. All rights reserved.
 
-// 20180319-7135
+// 20210302-7752
 // dataservice.js
 (function () {
 
 	let http = require('std:http');
-	let utils = require('std:utils');
 
 	function post(url, data, raw) {
 		return http.post(url, data, raw);
@@ -4373,15 +4384,16 @@ app.modules['std:routing'] = function () {
 	}
 };
 
-// Copyright © 2015-2019 Alex Kukhtin. All rights reserved.
+// Copyright © 2015-2021 Alex Kukhtin. All rights reserved.
 
-/*20191211-7596*/
+/*20210502-7773*/
 /* services/accel.js */
 
 app.modules['std:accel'] = function () {
 
 	const _elems = [];
 	let _listenerAdded = false;
+	let _key = 42;
 
 	return {
 		registerControl,
@@ -4390,12 +4402,27 @@ app.modules['std:accel'] = function () {
 
 	function _keyDownHandler(ev) {
 		// control/alt/shift/meta
-		const keyAccel = `${ev.ctrlKey ? 'C' : '_'}${ev.altKey ? 'A' : '_'}${ev.shiftKey ? 'S' : '_'}${ev.metaKey ? 'M' : '_'}:${ev.code}`;
+		let code = ev.code;
+		// console.dir(code);
+		if (code === 'NumpadEnter')
+			code = "Enter";
+		const keyAccel = `${ev.ctrlKey ? 'C' : '_'}${ev.altKey ? 'A' : '_'}${ev.shiftKey ? 'S' : '_'}${ev.metaKey ? 'M' : '_'}:${code}`;
 		let el = _elems.find(x => x.accel === keyAccel);
-		if (!el) return;
-		if (el.action === 'focus') {
+		if (!el || !el.handlers || !el.handlers.length) return;
+		let handler = el.handlers[0];
+		if (handler.action === 'focus') {
+			ev.preventDefault();
+			ev.stopPropagation();
 			Vue.nextTick(() => {
-				el.elem.focus();
+				if (typeof handler.elem.focus === 'function')
+					handler.elem.focus();
+			});
+		} else if (handler.action == 'func') {
+			ev.preventDefault();
+			ev.stopPropagation();
+			Vue.nextTick(() => {
+				if (typeof handler.elem === 'function')
+					handler.elem();
 			});
 		}
 	}
@@ -4406,24 +4433,38 @@ app.modules['std:accel'] = function () {
 				return;
 			document.addEventListener('keydown', _keyDownHandler, false);
 			_listenerAdded = true;
+			//console.dir('set listener')
 		} else {
 			if (!_listenerAdded)
 				return;
 			document.removeEventListener('keydown', _keyDownHandler, false);
+			_listenerAdded = false;
+			//console.dir('remove listener')
 		}
 	}
 
 	function registerControl(accel, elem, action) {
-		var found = _elems.findIndex(c => c.elem === elem);
-		if (found === -1)
-			_elems.push({ elem: elem, accel: accel, action: action });
+		let key = _key++;
+		var found = _elems.find(c => c.accel === accel);
+		if (found)
+			found.handlers.unshift({ key, elem, action });
+		else
+			_elems.push({ accel: accel, handlers: [{ key, elem, action }] });
 		setListeners();
+		return key;
 	}
 
-	function unregisterControl(elem) {
-		var found = _elems.findIndex(c => c.elem === elem);
-		if (found !== -1)
-			_elems.splice(found);
+	function unregisterControl(key) {
+		var found = _elems.findIndex(c => c.handlers.findIndex(x => x.key === key) != -1);
+		if (found == -1) {
+			console.error('Invalid accel handler');
+			return;
+		}
+		let elem1 = _elems[found];
+		elem1.handlers.shift();
+		if (!elem1.handlers.length)
+			_elems.splice(found, 1);
+		setListeners();
 	}
 };
 
@@ -4723,7 +4764,7 @@ app.modules['std:accel'] = function () {
 			if (this.$parent.$registerControl)
 				this.$parent.$registerControl(this);
 			if (this.accel)
-				maccel.registerControl(this.accel, this.$refs.input, 'focus');
+				this._accelKey = maccel.registerControl(this.accel, this.$refs.input, 'focus');
 			if (!this.mask) return;
 			mask.mountElement(this.$refs.input, this.mask);
 		},
@@ -4732,7 +4773,7 @@ app.modules['std:accel'] = function () {
 			if (this.$parent.$unregisterControl)
 				this.$parent.$unregisterControl(this);
 			if (this.accel)
-				maccel.unregisterControl(this.$refs.input);
+				maccel.unregisterControl(this._accelKey);
 			if (!this.mask) return;
 			mask.unmountElement(this.$refs.input, this.mask);
 		},
@@ -4897,7 +4938,7 @@ Vue.component('validator-control', {
 */
 // Copyright © 2015-2021 Alex Kukhtin. All rights reserved.
 
-/*20200219-7749*/
+/*20210414-7765*/
 /*components/textbox.js*/
 
 /* password-- fake fields are a workaround for chrome autofill getting the wrong fields -->*/
@@ -4911,7 +4952,7 @@ Vue.component('validator-control', {
 		`<div :class="cssClass()" :test-id="testId">
 	<label v-if="hasLabel"><span v-text="label"/><slot name="hint"/><slot name="link"></slot></label>
 	<div class="input-group">
-		<input v-if="password" type="text" class="fake-pwd-field" />
+		<input v-if="password" type="text" class="fake-pwd-field" tabindex="-1"/>
 		<input ref="input" :type="controlType" v-focus :autocomplete="autocompleteText"
 			v-bind:value="modelValue" 
 				v-on:change="onChange($event.target.value)" 
@@ -4919,6 +4960,7 @@ Vue.component('validator-control', {
 				v-on:keypress="onKey($event)"
 				:class="inputClass" :placeholder="placeholder" :disabled="disabled" :tabindex="tabIndex" :maxlength="maxLength" :spellcheck="spellCheck"/>
 		<slot></slot>
+		<a class="a2-hyperlink add-on a2-inline" tabindex="-1" href="" @click.stop.prevent="clear" v-if="clearVisible"><i class="ico ico-clear"></i></a>
 		<validator :invalid="invalid" :errors="errors" :options="validatorOptions"></validator>
 	</div>
 	<slot name="popover"></slot>
@@ -4979,7 +5021,8 @@ Vue.component('validator-control', {
 			password: Boolean,
 			number: Boolean,
 			spellCheck: { type: Boolean, default: undefined },
-			enterCommand: Function
+			enterCommand: Function,
+			hasClear: Boolean
 		},
 		computed: {
 			controlType() {
@@ -4987,6 +5030,10 @@ Vue.component('validator-control', {
 			},
 			autocompleteText() {
 				return this.password ? 'new-password' : 'off';
+			},
+			clearVisible() {
+				if (!this.hasClear) return false;
+				return !!this.item[this.prop];
 			}
 		},
 		methods: {
@@ -5010,11 +5057,20 @@ Vue.component('validator-control', {
 					this.updateValue(value);
 			},
 			onKey(event) {
-				if (!this.number) return;
-				if ((event.charCode < 48 || event.charCode > 57) && event.charCode !== 45 /*minus*/) {
-					event.preventDefault();
-					event.stopPropagation();
+				if (this.number) {
+					if ((event.charCode < 48 || event.charCode > 57) && event.charCode !== 45 /*minus*/) {
+						event.preventDefault();
+						event.stopPropagation();
+					}
 				}
+				if (event.code === "Enter") {
+					if (this.enterCommand) {
+						this.enterCommand();
+					}
+				}
+			},
+			clear() {
+				this.item[this.prop] = '';
 			}
 		}
 	};
@@ -5422,9 +5478,9 @@ Vue.component('validator-control', {
 		}
 	});
 })();
-// Copyright © 2015-2019 Alex Kukhtin. All rights reserved.
+// Copyright © 2015-2021 Alex Kukhtin. All rights reserved.
 
-// 20200831-7704
+// 20210402-7760
 // components/datepicker.js
 
 
@@ -5445,7 +5501,7 @@ Vue.component('validator-control', {
 	<label v-if="hasLabel"><span v-text="label"/><slot name="hint"/><slot name="link"></slot></label>
 	<div class="input-group"  @click="clickInput($event)">
 		<input v-focus v-model.lazy="model" :class="inputClass" :disabled="inputDisabled"/>
-		<a href @click.stop.prevent="toggle($event)"><i class="ico ico-calendar"></i></a>
+		<a href @click.stop.prevent="toggle($event)" tabindex="-1"><i class="ico ico-calendar"></i></a>
 		<validator :invalid="invalid" :errors="errors" :options="validatorOptions"></validator>
 		<div class="calendar" v-if="isOpen">		
 			<a2-calendar :model="modelDate" :view="view"
@@ -5743,6 +5799,8 @@ Vue.component('validator-control', {
 				set(str) {
 					let md = new Date(this.modelDate);
 					if (str) {
+						if (utils.date.isZero(md))
+							md = utils.date.today();
 						let time = utils.date.parseTime(str);
 						md.setUTCHours(time.getHours(), time.getMinutes());
 					} else {
@@ -6358,7 +6416,7 @@ Vue.component('validator-control', {
 })();
 // Copyright © 2015-2021 Alex Kukhtin. All rights reserved.
 
-// 20210127-7744
+// 20210328-7771
 // components/datagrid.js*/
 
 (function () {
@@ -6368,28 +6426,12 @@ Vue.component('validator-control', {
 	 * Groupings. "v-show" on a line is much faster than "v-if" on an entire template.
 	 */
 
-	/*TODO:
-   7. Доделать checked
-   10.
-   */
-
-
 	const utils = require('std:utils');
 	const log = require('std:log');
 	const eventBus = require('std:eventBus');
 	const locale = window.$$locale;
 
 	const eqlower = utils.text.equalNoCase;
-
-	/* group marker
-				<th v-if="isGrouping" class="group-cell" style="display:none">
-					<div class="h-group">
-						<a @click.prevent="expandGroups(gi)" v-for="gi in $groupCount" v-text='gi' /><a
-							@click.prevent="expandGroups($groupCount + 1)" v-text='$groupCount + 1' />
-					</div>
-				</th>
-			<col v-if="isGrouping" class="fit"/>
-	 */
 
 	const dataGridTemplate = `
 <div v-lazy="itemsSource" :class="{'data-grid-container':true, 'fixed-header': fixedHeader, 'bordered': border}" :test-id="testId">
@@ -6706,9 +6748,9 @@ Vue.component('validator-control', {
 						getHref() {
 							if (!col.command) return null;
 							if (col.command.isDialog)
-								return null;
+								return '';
 							if (col.command.cmd.name.indexOf('$exec') !== -1)
-								return null;
+								return '';
 							let id = arg2;
 							if (utils.isObjectExact(arg2))
 								id = arg2.$id;
@@ -6855,7 +6897,9 @@ Vue.component('validator-control', {
 		},
 		methods: {
 			visible() {
-				if (this.$parent.isRowDetailsCell)
+				if (this.$parent.isRowDetailsAlways)
+					return true;
+				else if (this.$parent.isRowDetailsCell)
 					return this.row._uiprops_.$details ? true : false;
 				return this.row === this.$parent.selected();
 			}
@@ -6891,7 +6935,8 @@ Vue.component('validator-control', {
 			isItemActive: Function,
 			hitItem: Function,
 			emptyPanelCallback: Function,
-			testId: String
+			testId: String,
+			autoSelect: String
 		},
 		template: dataGridTemplate,
 		components: {
@@ -6918,6 +6963,9 @@ Vue.component('validator-control', {
 			},
 			isRowDetailsCell() {
 				return this.rowDetails && this.rowDetailsActivate === 'cell';
+			},
+			isRowDetailsAlways() {
+				return this.rowDetails && this.rowDetailsActivate === 'always';
 			},
 			isMarkRow() {
 				return this.markStyle === 'row' || this.markStyle === 'both';
@@ -7055,9 +7103,8 @@ Vue.component('validator-control', {
 		methods: {
 			selected() {
 				let src = this.itemsSource;
-				if (src.$origin) {
+				if (src.$origin)
 					src = src.$origin;
-				}
 				return src.$selected;
 			},
 			$addColumn(column) {
@@ -7167,6 +7214,17 @@ Vue.component('validator-control', {
 				for (var gr of this.$groups)
 					gr.expanded = gr.level < lev;
 			},
+			__autoSelect() {
+				if (!this.autoSelect || !this.$items || !this.$items.length) return;
+				if (this.$items.$selected) return;
+				switch (this.autoSelect) {
+					case 'first-item':
+						this.$items[0].$select();
+						break;
+					case 'last-item':
+						this.$items[this.$items.length - 1].$select();
+				}
+			},
 			__invoke__test__(args) {
 				args = args || {};
 				if (args.target !== 'datagrid')
@@ -7194,6 +7252,7 @@ Vue.component('validator-control', {
 				let tr = rows[ix].$refs.tr;
 				tr.scrollIntoViewCheck();
 			}
+			this.__autoSelect();
 		},
 		mounted() {
 			if (this.testId)
@@ -8226,6 +8285,31 @@ TODO:
 	});
 
 })();
+// Copyright © 2021 Alex Kukhtin. All rights reserved.
+
+// 20210502-7773
+// components/accelcommand.js
+
+const maccel = require('std:accel');
+
+(function () {
+	Vue.component('a2-accel-command', {
+		props: {
+			accel: String,
+			command: Function
+		},
+		render() {
+		},
+		mounted() {
+			if (this.accel)
+				this._key = maccel.registerControl(this.accel, this.command, 'func');
+		},
+		beforeDestroy() {
+			if (this.accel)
+				maccel.unregisterControl(this._key);
+		},
+	});
+})();
 // Copyright © 2015-2020 Alex Kukhtin. All rights reserved.
 
 // 20201106-7720
@@ -8807,9 +8891,9 @@ TODO:
 	});
 })();
 
-// Copyright © 2015-2020 Alex Kukhtin. All rights reserved.
+// Copyright © 2015-2021 Alex Kukhtin. All rights reserved.
 
-// 20200129-7623
+// 20210512-7774
 // components/modal.js
 
 
@@ -8820,7 +8904,7 @@ TODO:
 	const utils = require('std:utils');
 
 	const modalTemplate = `
-<div class="modal-window modal-animation-window" @keydown.tab="tabPress" :class="mwClass">
+<div class="modal-window modal-animation-window" @keydown.tab="tabPress" :class="mwClass" ref=dialog>
 	<include v-if="isInclude" class="modal-body" :src="dialog.url" :done="loaded" :inside-dialog="true"></include>
 	<div v-else class="modal-body">
 		<div class="modal-header" v-drag-window><span v-text="title"></span><button ref='btnclose' class="btnclose" @click.prevent="modalClose(false)">&#x2715;</button></div>
@@ -8872,7 +8956,6 @@ TODO:
 
 	const dragDialogDirective = {
 		inserted(el, binding) {
-
 			const mw = el.closest('.modal-window');
 			if (!mw)
 				return;
@@ -8904,16 +8987,18 @@ TODO:
 			function onMouseMove(event) {
 				if (!opts.down)
 					return;
-				let dx = event.pageX - opts.offset.x;
-				let dy = event.pageY - opts.offset.y;
+				// flex centered window
+				let dx = (event.pageX - opts.offset.x) * 2;
+				let dy = (event.pageY - opts.offset.y) * 2;
 				let mx = opts.init.x + dx;
 				let my = opts.init.y + dy;
 				// fit
 				let maxX = window.innerWidth - opts.init.cx;
-				let maxY = window.innerHeight - opts.init.cy;
-				if (my < 0) my = 0;
-				if (mx < 0) mx = 0;
+				let maxY = window.innerHeight - opts.init.cy - 24 /*footer height*/;
+				//if (my < 0) my = 0;
+				if (mx < -maxX) mx = -maxX;
 				if (mx > maxX) mx = maxX;
+				if (my < -maxY) my = -maxY;
 				//if (my > maxY) my = maxY; // any value available
 				//console.warn(`dx:${dx}, dy:${dy}, mx:${mx}, my:${my}, cx:${opts.init.cx}`);
 				mw.style.marginLeft = mx + 'px';
@@ -8960,48 +9045,27 @@ TODO:
 				return utils.text.sanitize(this.dialog.message);
 			},
 			tabPress(event) {
-				function createThisElems() {
-					let qs = document.querySelectorAll('.modal-body [tabindex]');
-					let ea = [];
-					for (let i = 0; i < qs.length; i++) {
-						//TODO: check visibilty!
-						ea.push({ el: qs[i], ti: +qs[i].getAttribute('tabindex') });
-					}
-					ea = ea.sort((a, b) => a.ti > b.ti);
-					//console.dir(ea);
-					return ea;
-				}
-
-
-				if (this._tabElems === undefined) {
-					this._tabElems = createThisElems();
-				}
-				if (!this._tabElems || !this._tabElems.length)
-					return;
-				let back = event.shiftKey;
-				let lastItm = this._tabElems.length - 1;
-				let maxIndex = this._tabElems[lastItm].ti;
-				let aElem = document.activeElement;
-				let ti = +aElem.getAttribute("tabindex");
-				//console.warn(`ti: ${ti}, maxIndex: ${maxIndex}, back: ${back}`);
-				if (ti === 0) {
-					event.preventDefault();
-					return;
-				}
-				if (back) {
-					if (ti === 1) {
-						event.preventDefault();
-						this._tabElems[lastItm].el.focus();
-					}
-				} else {
-					if (ti === maxIndex) {
-						event.preventDefault();
-						this._tabElems[0].el.focus();
-					}
-				}
+				const dialog = this.$refs.dialog;
+				const activeInput = document.activeElement;
+				let elems = Array.from(dialog.querySelectorAll('input:enabled, button:enabled, textarea:enabled, select:enabled, a:not([disabled])'));
+				elems = elems
+					.filter(el => el && (el.offsetLeft || el.offsetTop || el.offsetWidth || el.offsetHeight))
+					.map(el => { return { elem: el, ti: +el.getAttribute('tabindex') || 0, active: el == activeInput }; })
+					.filter(el => el.ti !== -1)
+					.sort((e1, e2) => e1.ti == e2.ti ? 0 : e1.ti < e2.ti ? -1 : 1);
+				if (!elems.length) return;
+				const d = event.shiftKey ? -1 : 1;
+				let ai = elems.findIndex(x => x.active);
+				let ni = ai + d;
+				if (ni < 0)
+					ni = elems.length - 1;
+				else if (ni >= elems.length)
+					ni = 0;
+				elems[ni].elem.focus();
+				event.preventDefault();
 			},
 			__modalRequery() {
-				alert('requery');
+				alert('requery yet not implemented');
 			}
 		},
 		computed: {
@@ -9051,8 +9115,10 @@ TODO:
 		},
 		created() {
 			document.addEventListener('keyup', this.keyUpHandler);
-			if (document.activeElement)
-				document.activeElement.blur();
+			this.savedFocus = document.activeElement;
+			if (this.savedFocus && this.savedFocus.blur) {
+				this.savedFocus.blur();
+			}
 		},
 		mounted() {
 			setTimeout(() => {
@@ -9060,6 +9126,8 @@ TODO:
 			}, 50); // same as shell
 		},
 		destroyed() {
+			if (this.savedFocus && this.savedFocus.focus)
+				this.savedFocus.focus();
 			document.removeEventListener('keyup', this.keyUpHandler);
 		}
 	};
@@ -9804,12 +9872,14 @@ Vue.component('a2-panel', {
 		}
 	}
 });
-// Copyright © 2020 Alex Kukhtin. All rights reserved.
+// Copyright © 2020-2021 Alex Kukhtin. All rights reserved.
 
-// 20201130-7634
+// 20201130-7773
 // components/inlinedialog.js
 (function () {
 	const eventBus = require('std:eventBus');
+
+	let __inlineStack = []; // for ESC support
 
 	Vue.component('a2-inline-dialog', {
 		template:
@@ -9842,9 +9912,13 @@ Vue.component('a2-panel', {
 			__keyUp(event) {
 				if (this.noClose) return;
 				if (event.which === 27) {
-					eventBus.$emit('inlineDialog', { cmd: 'close', id: this.dialogId });
 					event.stopPropagation();
 					event.preventDefault();
+					if (__inlineStack.length && __inlineStack[0] !== this.dialogId)
+						return;
+					setTimeout(() => {
+						eventBus.$emit('inlineDialog', { cmd: 'close', id: this.dialogId });
+					}, 1);
 				}
 			},
 			__inlineEvent(opts) {
@@ -9853,12 +9927,14 @@ Vue.component('a2-panel', {
 				switch (opts.cmd) {
 					case 'close':
 						if (window.__requestsCount__ > 0) return;
+						__inlineStack.shift();
 						this.open = false;
 						this.visible = false;
 						document.removeEventListener('keyup', this.__keyUp);
 						break;
 					case 'open':
 						this.visible = true;
+						__inlineStack.unshift(this.dialogId);
 						document.addEventListener('keyup', this.__keyUp);
 						setTimeout(() => {
 							this.open = true;
@@ -11171,7 +11247,7 @@ Vue.directive('resize', {
 
 // Copyright © 2015-2021 Alex Kukhtin. All rights reserved.
 
-/*20210220-7749*/
+/*20210419-7768*/
 // controllers/base.js
 
 (function () {
@@ -11771,6 +11847,18 @@ Vue.directive('resize', {
 				return dlgData.promise;
 			},
 
+			$focus(htmlid) {
+				let elem = document.querySelector('#' + htmlid);
+				if (!elem) return;
+				let ch = elem.querySelector('input, textarea, button, select');
+				this.$defer(() => {
+					if (ch && ch.focus)
+						ch.focus();
+					else if (elem.focus)
+						elem.focus();
+				});
+			},
+
 			$msg(msg, title, style) {
 				let prms = { message: msg, title: title || locale.$Message, style: style || 'info' };
 				return this.$confirm(prms);
@@ -11857,9 +11945,9 @@ Vue.directive('resize', {
 						that.$alert(locale.$PermissionDenied);
 						return;
 					}
-					if (utils.isFunction(query)) {
+					if (utils.isFunction(query))
 						query = query();
-					}
+					let reloadAfter = opts && opts.reloadAfter;
 					switch (command) {
 						case 'new':
 							if (argIsNotAnArray()) return;
@@ -11885,30 +11973,43 @@ Vue.directive('resize', {
 							});
 						case 'edit-selected':
 							if (argIsNotAnArray()) return;
+							if (!arg.$selected) return;
 							return __runDialog(url, arg.$selected, query, (result) => {
 								arg.$selected.$merge(result);
 								arg.__fireChange__('selected');
-								if (opts && opts.reloadAfter) {
+								if (reloadAfter) 
 									that.$reload();
-								}
+							});
+						case 'show-selected': 
+							if (argIsNotAnArray()) return;
+							if (!arg.$selected) return;
+							return __runDialog(url, arg.$selected, query, (result) => {
+								if (result === 'reload' || reloadAfter)
+									that.$reload();
 							});
 						case 'edit':
 							if (argIsNotAnObject()) return;
 							return __runDialog(url, arg, query, (result) => {
 								if (result === 'reload')
 									that.$reload();
-								else if (arg.$merge && utils.isObjectExact(result))
+								else if (arg.$merge && utils.isObjectExact(result)) {
 									arg.$merge(result);
-								else if (opts && opts.reloadAfter)
-									that.$reload();
+									if (reloadAfter)
+										that.$reload();
+								}
 							});
 						case 'copy':
 							if (argIsNotAnObject()) return;
 							let arr = arg.$parent;
-							return __runDialog(url, arg, query, (result) => { arr.$append(result); });
-						default: // simple show dialog
 							return __runDialog(url, arg, query, (result) => {
-								if (opts && opts.reloadAfter) {
+								arr.$append(result);
+								if (reloadAfter) {
+									that.$reload();
+								}
+							});
+						default: // simple show dialog
+							return __runDialog(url, arg, query, (r) => {
+								if (reloadAfter) {
 									that.$reload();
 								}
 							});
@@ -12390,7 +12491,9 @@ Vue.directive('resize', {
 					$navigate: this.$navigate,
 					$defer: platform.defer,
 					$setFilter: this.$setFilter,
-					$expand: this.$expand
+					$expand: this.$expand,
+					$focus: this.$focus,
+					$report: this.$report
 				};
 				Object.defineProperty(ctrl, "$isDirty", {
 					enumerable: true,
@@ -12603,15 +12706,15 @@ Vue.directive('resize', {
 		isSeparatePage
 	};
 })();	
-// Copyright © 2020 Alex Kukhtin. All rights reserved.
+// Copyright © 2020-2021 Alex Kukhtin. All rights reserved.
 
-/*20200611-7672*/
+/*20210428-7771*/
 /* controllers/navbar.js */
 
 (function () {
 
 	const locale = window.$$locale;
-	const menu = component('std:navmenu');
+	const menuTools = component('std:navmenu');
 	const eventBus = require('std:eventBus');
 	const period = require('std:period');
 	const store = component('std:store');
@@ -12658,32 +12761,34 @@ Vue.directive('resize', {
 					return;
 				let storageKey = 'menu:' + urlTools.combine(window.$$rootUrl, item.Url);
 				let savedUrl = localStorage.getItem(storageKey) || '';
-				if (savedUrl && !menu.findMenu(item.Menu, (mi) => mi.Url === savedUrl)) {
+				if (savedUrl && !menuTools.findMenu(item.Menu, (mi) => mi.Url === savedUrl)) {
 					// saved segment not found in current menu
 					savedUrl = '';
 				}
 				let opts = { title: null, seg2: savedUrl };
-				let url = menu.makeMenuUrl(this.menu, item.Url, opts);
+				let url = menuTools.makeMenuUrl(this.menu, item.Url, opts);
 				this.$store.commit('navigate', { url: url, title: opts.title });
 			},
 			showHelp() {
 				window.open(this.helpHref(), "_blank");
 			},
-			helpHref() {
+			_findHelp() {
+				if (!this.menu) return null;
 				let am = this.menu.find(x => this.isActive(x));
 				if (am && am.Menu) {
-					let am2 = am.Menu.find(x => this.isActive2(x));
+					// find recursive!
+					let am2 = menuTools.findMenu(am.Menu, x => this.isActive2(x));
 					if (am2 && am2.Help)
-						return urlTools.helpHref(am2.Help);
+						return am2.Help;
 				}
-				if (am && am.Help)
-					return urlTools.helpHref(am.Help);
-				return urlTools.helpHref('');
+				return am ? am.Help : null;
+			},
+			helpHref() {
+				let helpUrl = this._findHelp() || '';
+				return urlTools.helpHref(helpUrl);
 			},
 			hasHelp() {
-				if (!this.menu) return false;
-				let am = this.menu.find(x => this.isActive(x));
-				return am && am.Help;
+				return !!this._findHelp();
 			},
 			periodChanged(period) {
 				// post to shell
@@ -12752,12 +12857,12 @@ Vue.directive('resize', {
 				this.closeNavMenu();
 				let storageKey = 'menu:' + urlTools.combine(window.$$rootUrl, item.Url);
 				let savedUrl = localStorage.getItem(storageKey) || '';
-				if (savedUrl && !menu.findMenu(item.Menu, (mi) => mi.Url === savedUrl)) {
+				if (savedUrl && !menuTools.findMenu(item.Menu, (mi) => mi.Url === savedUrl)) {
 					// saved segment not found in current menu
 					savedUrl = '';
 				}
 				let opts = { title: null, seg2: savedUrl };
-				let url = menu.makeMenuUrl(this.menu, item.Url, opts);
+				let url = menuTools.makeMenuUrl(this.menu, item.Url, opts);
 				this.$store.commit('navigate', { url: url, title: opts.title });
 			},
 			closeNavMenu() {
@@ -12940,9 +13045,9 @@ Vue.directive('resize', {
 		tabSideBar: a2TabSideBar
 	};
 })();	
-// Copyright © 2015-2020 Alex Kukhtin. All rights reserved.
+// Copyright © 2015-2021 Alex Kukhtin. All rights reserved.
 
-/*20201005-7710*/
+/*20210428-7771*/
 /* controllers/shell.js */
 
 (function () {
@@ -12983,7 +13088,11 @@ Vue.directive('resize', {
 		<a class="nav-admin" v-if="userIsAdmin" href="/admin/" tabindex="-1"><i class="ico ico-gear-outline"></i></a>
 	</template>
 	<div class="dropdown dir-down separate" v-dropdown>
-		<button class="btn user-name" toggle :title="personName"><i class="ico ico-user"></i> <span id="layout-person-name" class="person-name" v-text="personName"></span><span class="caret"></span></button>
+		<button class="btn user-name" toggle :title="personName"><i class="ico ico-user"></i> 
+			<span id="layout-person-name" class="person-name" v-text="personName"></span>
+			<span id="layout-client-id" class="client-id" v-if="clientId"> [<span v-text="clientId" ></span>]</span>
+			<span class="caret"></span>
+		</button>
 		<div class="dropdown-menu menu down-left">
 			<a v-if="!isSinglePage " v-for="(itm, itmIndex) in profileItems" @click.prevent="doProfileMenu(itm)" class="dropdown-item" tabindex="-1"><i class="ico" :class="'ico-' + itm.icon"></i> <span v-text="itm.title" :key="itmIndex"></span></a>
 			<a @click.prevent="changePassword" class="dropdown-item" tabindex="-1"><i class="ico ico-access"></i> <span v-text="locale.$ChangePassword"></span></a>
@@ -13000,6 +13109,7 @@ Vue.directive('resize', {
 			subtitle: String,
 			userState: Object,
 			personName: String,
+			clientId: String,
 			userIsAdmin: Boolean,
 			menu: Array,
 			newMenu: Array,

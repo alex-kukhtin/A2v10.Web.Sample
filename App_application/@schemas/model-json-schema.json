@@ -1,6 +1,6 @@
 ﻿{
 	"$schema": "http://json-schema.org/draft-04/schema",
-	"$version": "10.0.7748",
+	"$version": "10.0.7765",
 	"title": "JSON Schema for model.json",
 	"type": "object",
 
@@ -169,7 +169,8 @@
 						"errorCode": { "type": "number" },
 						"parameters": { "type": "object" },
 						"args": { "type": "object" },
-						"file": { "type": "string" }
+						"file": { "type": "string" },
+						"debugOnly": {"type": "boolean" }
 					},
 					"additionalProperties": false
 				}
@@ -203,6 +204,7 @@
 					"type": "object",
 					"properties": {
 						"model": { "type": "string" },
+						"schema": { "type": "string" },
 						"type": {
 							"type": "string",
 							"enum": [ "parse", "clr", "sql", "azureBlob" ]
@@ -211,11 +213,13 @@
 							"type": "string",
 							"enum": [ "excel", "xlsx", "csv", "dbf", "xml", "auto" ]
 						},
+						"commandTimeout": { "type": "number" },
 						"async": { "type": "boolean" },
 						"clrType": {
 							"type": "string",
 							"pattern": "^\\s*clr-type\\s*:\\s*([\\w\\.]+)\\s*;\\s*assembly\\s*=\\s*([\\w\\.]+)\\s*$"
 						},
+						"locale": { "type": "string" },
 						"container": { "type": "string" },
 						"azureSource": { "type": "string" },
 						"imageCompress": {

@@ -2,18 +2,11 @@
 ------------------------------------------------
 Copyright © 2008-2021 Alex Kukhtin
 
-Last updated : 21 feb 2021
-module version : 7749
+Last updated : 29 apr 2021
+module version : 7754
 */
 ------------------------------------------------
-begin
-	set nocount on;
-	declare @Version int = 7749;
-	if not exists(select * from a2sys.Versions where Module = N'std:security')
-		insert into a2sys.Versions (Module, [Version]) values (N'std:security', @Version);
-	else
-		update a2sys.Versions set [Version] = @Version where Module = N'std:security';
-end
+exec a2sys.SetVersion N'std:security', 7754;
 go
 ------------------------------------------------
 if not exists(select * from INFORMATION_SCHEMA.SCHEMATA where SCHEMA_NAME=N'a2security')
@@ -44,9 +37,14 @@ begin
 		[State] nvarchar(128) null,
 		UserSince datetime null,
 		LastPaymentDate datetime null,
-		Balance money null
+		Balance money null,
+		[Locale] nvarchar(32) not null constraint DF_Tenants_Locale default('uk-UA')
 	);
 end
+go
+------------------------------------------------
+if not exists(select * from INFORMATION_SCHEMA.COLUMNS where TABLE_SCHEMA=N'a2security' and TABLE_NAME=N'Tenants' and COLUMN_NAME=N'Locale')
+	alter table a2security.Tenants add [Locale] nvarchar(32) not null constraint DF_Tenants_Locale default('uk-UA');
 go
 ------------------------------------------------
 if not exists(select * from INFORMATION_SCHEMA.TABLES where TABLE_SCHEMA=N'a2security' and TABLE_NAME=N'Config')
@@ -138,7 +136,7 @@ begin
 			constraint DF_Users_PK default(next value for a2security.SQ_Users),
 		Tenant int null 
 			constraint FK_Users_Tenant_Tenants foreign key references a2security.Tenants(Id),
-		UserName nvarchar(255)	not null constraint UNQ_Users_UserName unique,
+		UserName nvarchar(255) not null constraint UNQ_Users_UserName unique,
 		DomainUser nvarchar(255) null,
 		Void bit not null constraint DF_Users_Void default(0),
 		SecurityStamp nvarchar(max)	not null,
@@ -152,7 +150,7 @@ begin
 		LockoutEnabled	bit	not null constraint DF_Users_LockoutEnabled default(1),
 		LockoutEndDateUtc datetimeoffset null,
 		AccessFailedCount int not null constraint DF_Users_AccessFailedCount default(0),
-		[Locale] nvarchar(32) not null constraint DF_Users_Locale default('uk_UA'),
+		[Locale] nvarchar(32) not null constraint DF_Users_Locale2 default('uk-UA'),
 		PersonName nvarchar(255) null,
 		LastLoginDate datetime null, /*UTC*/
 		LastLoginHost nvarchar(255) null,
@@ -177,6 +175,13 @@ go
 if not exists(select * from INFORMATION_SCHEMA.COLUMNS where TABLE_SCHEMA=N'a2security' and TABLE_NAME=N'Users' and COLUMN_NAME=N'ApiUser')
 	alter table a2security.Users add ApiUser bit not null 
 		constraint DF_Users_ApiUser default(0) with values;
+go
+------------------------------------------------
+if exists(select * from sys.default_constraints where name=N'DF_Users_Locale' and parent_object_id = object_id(N'a2security.Users'))
+begin
+	alter table a2security.Users drop constraint DF_Users_Locale;
+	alter table a2security.Users add constraint DF_Users_Locale2 default('uk-UA') for [Locale] with values;
+end
 go
 ------------------------------------------------
 if not exists(select * from INFORMATION_SCHEMA.TABLES where TABLE_SCHEMA=N'a2security' and TABLE_NAME=N'UserLogins')
@@ -360,10 +365,15 @@ begin
 		[ApiKey] nvarchar(255),
 		[AllowIP] nvarchar(1024),
 		Memo nvarchar(255),
+		RedirectUrl nvarchar(255),
 		[DateModified] datetime not null constraint DF_ApiUserLogins_DateModified default(a2sys.fn_getCurrentDate()),
 		constraint PK_ApiUserLogins primary key([User], Mode)
 	);
 end
+go
+------------------------------------------------
+if not exists(select * from INFORMATION_SCHEMA.COLUMNS where TABLE_SCHEMA=N'a2security' and TABLE_NAME=N'ApiUserLogins' and COLUMN_NAME=N'RedirectUrl')
+	alter table a2security.ApiUserLogins add RedirectUrl nvarchar(255);
 go
 ------------------------------------------------
 if not exists (select * from sys.indexes where object_id = object_id(N'a2security.ApiUserLogins') and name = N'UNQ_ApiUserLogins_ApiKey')
@@ -655,6 +665,46 @@ begin
 end
 go
 ------------------------------------------------
+if exists (select * from INFORMATION_SCHEMA.ROUTINES where ROUTINE_SCHEMA=N'a2security' and ROUTINE_NAME=N'FindApiUserByBasic')
+	drop procedure a2security.FindApiUserByBasic
+go
+------------------------------------------------
+create procedure a2security.FindApiUserByBasic
+@Host nvarchar(255) = null,
+@ClientId nvarchar(255) = null,
+@ClientSecret nvarchar(255) = null
+as
+begin
+	set nocount on;
+	set transaction isolation level read committed;
+
+	declare @status nvarchar(255);
+	declare @code int;
+
+	set @status = N'Basic=' + @ClientId;
+	set @code = 65; /*fail*/
+
+	declare @usertable table(Id bigint, Tenant int, Segment nvarchar(255), [Name] nvarchar(255), ClientId nvarchar(255), AllowIP nvarchar(255));
+
+	insert into @usertable(Id, Tenant, Segment, [Name], ClientId, AllowIP)
+	select top(1) u.Id, u.Tenant, Segment, [Name]=u.UserName, s.ClientId, s.AllowIP 
+	from a2security.Users u inner join a2security.ApiUserLogins s on u.Id = s.[User]
+	where u.Void=0 and s.Mode = N'Basic' and s.ClientId = @ClientId and s.ClientSecret = @ClientSecret;
+	
+	if @@rowcount > 0 
+	begin
+		set @code = 64 /*sucess*/;
+		update a2security.Users set LastLoginDate=getutcdate(), LastLoginHost=@Host
+			from @usertable t inner join a2security.Users u on t.Id = u.Id;
+	end
+
+	insert into a2security.[Log] (UserId, Severity, Code, Host, [Message])
+		values (0, N'I', @code, @Host, @status);
+
+	select * from @usertable;
+end
+go
+------------------------------------------------
 if exists (select * from INFORMATION_SCHEMA.ROUTINES where ROUTINE_SCHEMA=N'a2security' and ROUTINE_NAME=N'UpdateUserPassword')
 	drop procedure a2security.UpdateUserPassword
 go
@@ -817,14 +867,17 @@ create procedure a2security.CreateUser
 @RegisterHost nvarchar(255) = null,
 @Memo nvarchar(255) = null,
 @TariffPlan nvarchar(255) = null,
+@Locale nvarchar(255) = null,
 @RetId bigint output
 as
 begin
--- from account/register only
+	-- from account/register only
 	set nocount on;
 	set transaction isolation level read committed;
 	set xact_abort on;
 	
+	set @Locale = isnull(@Locale, N'uk-UA')
+
 	declare @userId bigint; 
 
 	if @Tenant = -1
@@ -834,20 +887,20 @@ begin
 		declare @tenantId int;
 
 		begin tran;
-		insert into a2security.Tenants([Admin])
+		insert into a2security.Tenants([Admin], Locale)
 			output inserted.Id into @tenants(id)
-			values (null);
+		values (null, @Locale);
 
 		select top(1) @tenantId = id from @tenants;
 
 		insert into a2security.ViewUsers(UserName, PasswordHash, SecurityStamp, Email, PhoneNumber, Tenant, PersonName, 
-			RegisterHost, Memo, TariffPlan, Segment)
+			RegisterHost, Memo, TariffPlan, Segment, Locale)
 			output inserted.Id into @users(id)
 			values (@UserName, @PasswordHash, @SecurityStamp, @Email, @PhoneNumber, @tenantId, @PersonName, 
-				@RegisterHost, @Memo, @TariffPlan, a2security.fn_GetCurrentSegment());
+				@RegisterHost, @Memo, @TariffPlan, a2security.fn_GetCurrentSegment(), @Locale);
 		select top(1) @userId = id from @users;
 
-		update a2security.Tenants set [Admin]=@userId where Id=@tenantId;
+		update a2security.Tenants set [Admin] = @userId where Id=@tenantId;
 
 		insert into a2security.UserGroups(UserId, GroupId) values (@userId, 1 /*all users*/);
 
@@ -859,16 +912,15 @@ begin
 			set @prms = N'@TenantId int, @CompanyId bigint, @UserId bigint';
 			exec sp_executesql @sql, @prms, @tenantId, 1, @userId;
 		end
-
 		commit tran;
 	end
 	else
 	begin
 		begin tran;
 
-		insert into a2security.ViewUsers(UserName, PasswordHash, SecurityStamp, Email, PhoneNumber, PersonName, RegisterHost, Memo, TariffPlan)
+		insert into a2security.ViewUsers(UserName, PasswordHash, SecurityStamp, Email, PhoneNumber, PersonName, RegisterHost, Memo, TariffPlan, Locale)
 			output inserted.Id into @users(id)
-			values (@UserName, @PasswordHash, @SecurityStamp, @Email, @PhoneNumber, @PersonName, @RegisterHost, @Memo, @TariffPlan);
+			values (@UserName, @PasswordHash, @SecurityStamp, @Email, @PhoneNumber, @PersonName, @RegisterHost, @Memo, @TariffPlan, @Locale);
 		select top(1) @userId = id from @users;
 
 		insert into a2security.UserGroups(UserId, GroupId) values (@userId, 1 /*all users*/);
@@ -1054,6 +1106,33 @@ begin
 end
 go
 ------------------------------------------------
+if exists (select * from INFORMATION_SCHEMA.ROUTINES where ROUTINE_SCHEMA=N'a2security' and ROUTINE_NAME=N'User.CheckRegister')
+	drop procedure a2security.[User.CheckRegister]
+go
+------------------------------------------------
+create procedure a2security.[User.CheckRegister]
+@UserName nvarchar(255)
+as
+begin
+	set nocount on;
+	set transaction isolation level read committed;
+	set xact_abort on;
+
+	declare @Id bigint;
+
+	select @Id = Id from a2security.Users where UserName=@UserName and EmailConfirmed = 0 and PhoneNumberConfirmed = 0;
+
+	if @Id is not null
+	begin
+		declare @uid nvarchar(255);
+		set @uid = N'_' + convert(nvarchar(255), newid());
+		update a2security.Users set Void=1, UserName = UserName + @uid, 
+			Email = Email + @uid, PhoneNumber = PhoneNumber + @uid, PasswordHash = null, SecurityStamp = N''
+		where Id=@Id and EmailConfirmed = 0  and PhoneNumberConfirmed = 0 and UserName=@UserName;
+	end
+end
+go
+------------------------------------------------
 set nocount on;
 begin
 	-- predefined users and groups
@@ -1201,6 +1280,20 @@ begin
 	set xact_abort on;
 	select [UserCompany!TCompany!Object] = null, Company from a2security.UserCompanies 
 	where [User]=@UserId and [Current]=1
+end
+go
+------------------------------------------------
+if exists (select * from sys.objects where object_id = object_id(N'a2security.fn_isUserTenantAdmin') and type in (N'FN', N'IF', N'TF', N'FS', N'FT'))
+	drop function a2security.fn_isUserTenantAdmin;
+go
+------------------------------------------------
+create function a2security.fn_isUserTenantAdmin(@TenantId int, @UserId bigint)
+returns bit
+as
+begin
+	return case when 
+		exists(select * from a2security.Tenants where Id = @TenantId and [Admin] = @UserId) then 1 
+	else 0 end;
 end
 go
 ------------------------------------------------
