@@ -13,7 +13,6 @@
 					DoubleClick="{BindCmd Select, Argument={Bind Agents}}">
 				<DataGridColumn Header="Id" Content="{Bind Id}" Fit="True" Align="Right" Wrap="NoWrap"/>
 				<DataGridColumn Header="@[Name]" Content="{Bind Name}" />
-				<DataGridColumn Header="@[FullName]" Content="{Bind FullName}" />
 				<DataGridColumn Header="@[Code]" Content="{Bind Code}" Fit="True" Wrap="NoWrap"/>
 				<DataGridColumn Header="@[Phone]" Fit="True" Wrap="NoWrap" SortProperty="Phone">
 					<Span Content="{Bind Phone, Mask='+38(0##) ###-##-##'}" />

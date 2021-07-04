@@ -1,14 +1,6 @@
-------------------------------------------------
-if exists(select * from INFORMATION_SCHEMA.ROUTINES where ROUTINE_SCHEMA=N'a2v10sample' and ROUTINE_NAME=N'Document.Update')
-	drop procedure a2v10sample.[Document.Update];
-go
-------------------------------------------------
-if exists(select * from INFORMATION_SCHEMA.ROUTINES where ROUTINE_SCHEMA=N'a2v10sample' and ROUTINE_NAME=N'Agent.Update')
-	drop procedure a2v10sample.[Agent.Update];
-go
-------------------------------------------------
-if exists(select * from INFORMATION_SCHEMA.ROUTINES where ROUTINE_SCHEMA=N'a2v10sample' and ROUTINE_NAME=N'Product.Update')
-	drop procedure a2v10sample.[Product.Update];
+drop procedure if exists a2v10sample.[Document.Update];
+drop procedure if exists a2v10sample.[Agent.Update];
+drop procedure if exists a2v10sample.[Product.Update];
 go
 ------------------------------------------------
 if exists(select * from INFORMATION_SCHEMA.DOMAINS where DOMAIN_SCHEMA = N'a2v10sample' and DOMAIN_NAME = N'Document.TableType')
@@ -69,7 +61,8 @@ as table(
 	[Name] nvarchar(255),
 	[Article] nvarchar(255),
 	BarCode nvarchar(32),
-	Memo nvarchar(255) null
+	Memo nvarchar(255) null,
+	Picture bigint null
 )
 go
 

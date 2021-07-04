@@ -4,10 +4,18 @@
 		<Button Content="@[Save]" Command="{BindCmd SaveAndClose, ValidRequired=True}"/>
 		<Button Content="@[Cancel]" Command="{BindCmd Close}"/>
 	</Dialog.Buttons>
-	<Grid>
-		<TextBox Label="@[Name]" Value="{Bind Product.Name}"/>
-		<TextBox Label="@[BarCode]" Value="{Bind Product.BarCode}" Width="20rem"/>
-		<TextBox Label="@[Article]" Value="{Bind Product.Article}" Width="20rem"/>
-		<TextBox Label="@[Memo]" Value="{Bind Product.Memo}" Multiline="True" Rows="3"/>
-	</Grid>
+	<TabPanel>
+		<Tab Header="@[General]">
+			<Grid>
+				<TextBox Label="@[Name]" Value="{Bind Product.Name}"/>
+				<TextBox Label="@[BarCode]" Value="{Bind Product.BarCode}" Width="20rem"/>
+				<TextBox Label="@[Article]" Value="{Bind Product.Article}" Width="20rem"/>
+				<TextBox Label="@[Memo]" Value="{Bind Product.Memo}" Multiline="True" Rows="3"/>
+			</Grid>
+		</Tab>
+		<Tab Header="@[Images]" Padding="1rem">
+			<Image Source="{Bind Product.Picture}" Limit="100"
+				Base="/catalog/product" Height="18rem"/>
+		</Tab>
+	</TabPanel>
 </Dialog>

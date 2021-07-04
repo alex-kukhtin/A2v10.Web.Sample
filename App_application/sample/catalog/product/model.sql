@@ -79,9 +79,11 @@ as
 begin
 	set nocount on;
 
-	select [Product!TProduct!Object] = null, [Id!!Id] = Id, BarCode, [Name], Article, Memo
-	from a2v10sample.Products
-	where @Id = Id;
+	select [Product!TProduct!Object] = null, [Id!!Id] = p.Id, BarCode, p.[Name], Article, Memo,
+		[Picture.Id!TPicture!Id] = p.Picture, [Picture.Token!TPicture!Token] = i.AccessKey
+	from a2v10sample.Products p
+		left join a2v10sample.Images i on p.Picture = i.Id
+	where p.Id = @Id;
 end
 go
 ------------------------------------------------
@@ -107,17 +109,18 @@ begin
 	declare @RetId bigint;
 	declare @output table(op sysname, id bigint);
 
-	merge a2v10sample.Products as target
-	using @Product as source
-	on (target.Id = source.Id)
+	merge a2v10sample.Products as t
+	using @Product as s
+	on (t.Id = s.Id)
 	when matched then update set 
-		target.[Name] = source.[Name],
-		target.Article = source.Article,
-		target.BarCode = source.BarCode,
-		target.Memo = source.Memo
+		t.[Name] = s.[Name],
+		t.Article = s.Article,
+		t.BarCode = s.BarCode,
+		t.Memo = s.Memo,
+		t.Picture = s.[Picture]
 	when not matched by target then
-	insert([Name], Article, BarCode, Memo) 
-	values ([Name], Article, BarCode, Memo)
+	insert([Name], Article, BarCode, Memo, Picture)
+	values ([Name], Article, BarCode, Memo, s.Picture)
 	output 
 		$action op,
 		inserted.Id id
@@ -143,8 +146,41 @@ begin
 	begin catch
 		throw 60000, N'UI:@[Error.Used]', 0;
 	end catch
+end
+go
+------------------------------------------------
+create or alter procedure a2v10sample.[Product.Picture.Load]
+@UserId bigint,
+@Id bigint,
+@Key nvarchar(255) = null
+as
+begin
+	set nocount on;
+	set transaction isolation level read uncommitted;
+	select Mime, Stream = [Data], [Name], BlobName, Token=AccessKey from a2v10sample.Images where Id=@Id;
+end
+go
+------------------------------------------------
+create or alter procedure a2v10sample.[Product.Picture.Update]
+@UserId bigint,
+@Id bigint,
+@Mime nvarchar(255),
+@Name nvarchar(255),
+@Stream varbinary(max),
+@RetId bigint output
+as
+begin
+	set nocount on;
+	set transaction isolation level read uncommitted;
 
+	declare @rtable table (Id bigint);
+	
+	insert into a2v10sample.Images([Name], Mime, [Data])
+		output inserted.Id into @rtable
+	values(@Name, @Mime, @Stream);
 
+	select @RetId = Id from @rtable;
+	select [Id], Token=AccessKey from a2v10sample.[Images] where Id=@RetId;
 end
 go
 

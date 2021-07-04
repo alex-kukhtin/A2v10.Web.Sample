@@ -1,6 +1,6 @@
-// Copyright © 2015-2019 Alex Kukhtin. All rights reserved.
+// Copyright © 2015-2021 Alex Kukhtin. All rights reserved.
 
-// 20190813-7521
+// 20210529-7776
 // app.js
 
 "use strict";
@@ -10,11 +10,13 @@
 	window.app = {
 		modules: {},
 		components: {},
+		templates: {},
 		nextToken: nextToken
 	};
 
 	window.require = require;
 	window.component = component;
+	window.template = template;
 
 	// amd typescript support
 	window.define = define;
@@ -44,6 +46,14 @@
 		throw new Error('component "' + name + '" not found');
 	}
 
+	function template(name, noerror) {
+		if (name in app.templates)
+			return app.templates[name];
+		if (noerror)
+			return {};
+		throw new Error('template "' + name + '" not found');
+	}
+
 	let currentToken = 1603;
 
 	function nextToken() {
@@ -57,6 +67,13 @@
 		factory(require, exports);
 		return exports.default;
 	}
+
+	/*
+	Vue.config.warnHandler = function (msg, vm, trace) {
+		console.warn(msg);
+		return false;
+	};
+	*/
 
 })();
 // Copyright © 2015-2018 Alex Kukhtin. All rights reserved.
@@ -181,7 +198,7 @@ app.modules['std:const'] = function () {
 
 // Copyright © 2015-2021 Alex Kukhtin. All rights reserved.
 
-// 20210414-7765
+// 20210615-7784
 // services/utils.js
 
 app.modules['std:utils'] = function () {
@@ -194,7 +211,7 @@ app.modules['std:utils'] = function () {
 
 	const dateOptsDate = { timeZone: 'UTC', year: 'numeric', month: _2digit, day: _2digit };
 	const dateOptsTime = { timeZone: 'UTC', hour: _2digit, minute: _2digit };
-
+	
 	const formatDate = new Intl.DateTimeFormat(dateLocale, dateOptsDate).format;
 	const formatTime = new Intl.DateTimeFormat(dateLocale, dateOptsTime).format;
 
@@ -208,14 +225,10 @@ app.modules['std:utils'] = function () {
 
 	return {
 		isArray: Array.isArray,
-		isFunction: isFunction,
-		isDefined: isDefined,
-		isObject: isObject,
-		isObjectExact: isObjectExact,
-		isDate: isDate,
-		isString: isString,
-		isNumber: isNumber,
-		isBoolean: isBoolean,
+		isFunction, isDefined,
+		isObject, isObjectExact,
+		isDate, isString, isNumber, isBoolean,
+		isPromise,
 		toString: toString,
 		defaultValue: defaultValue,
 		notBlank: notBlank,
@@ -259,7 +272,8 @@ app.modules['std:utils'] = function () {
 			splitPath,
 			capitalize,
 			maxChars,
-			equalNoCase: stringEqualNoCase
+			equalNoCase: stringEqualNoCase,
+			applyFilters
 		},
 		currency: {
 			round: currencyRound,
@@ -267,9 +281,13 @@ app.modules['std:utils'] = function () {
 		},
 		func: {
 			curry,
-			debounce
+			debounce,
+			defPropertyGet
 		},
-		debounce: debounce
+		debounce: debounce,
+		model: {
+			propFromPath
+		}
 	};
 
 	function isFunction(value) { return typeof value === 'function'; }
@@ -280,6 +298,7 @@ app.modules['std:utils'] = function () {
 	function isNumber(value) { return typeof value === 'number'; }
 	function isBoolean(value) { return typeof value === 'boolean'; }
 	function isObjectExact(value) { return isObject(value) && !Array.isArray(value); }
+	function isPromise(v) { return isDefined(v) && isFunction(v.then) && isFunction(v.catch); }
 
 	function isPrimitiveCtor(ctor) {
 		return ctor === String || ctor === Number || ctor === Boolean || ctor === Date || ctor === platform.File || ctor === Object;
@@ -791,6 +810,50 @@ app.modules['std:utils'] = function () {
 		return (s1 || '').toLowerCase() === (s2 || '').toLowerCase();
 	}
 
+	function toLatin(v) {
+		v = v.toUpperCase();
+
+		let tbl = {
+			'Й': 'Q', 'Ц': 'W', 'У': 'E', 'К': 'R', 'Е': 'T', 'Н': 'Y', 'Г': 'U', 'Ш': 'I', 'Щ': 'O', 'З': 'P', 'Х': '[', 'Ъ': ']', 'Ї': ']',
+			'Ф': 'A', 'Ы': 'S', 'В': 'D', 'А': 'F', 'П': 'G', 'Р': 'H', 'О': 'J', 'Л': 'K', 'Д': 'L', 'І': 'S', 'Ж': ':', 'Э': '"', 'Є': '"',
+			'Я': 'Z', 'Ч': 'X', 'С': 'C', 'М': 'V', 'И': 'B', 'Т': 'N', 'Ь': 'M', 'Б': '<', 'Ю': '>'
+		};
+		
+		let r = '';
+		for (let i = 0; i < v.length; i++) {
+			let ch = tbl[v[i]];
+			if (ch)
+				r += ch;
+			else
+				r += v[i];
+		}
+		return r;
+	}
+
+	function applyFilters(filters, value) {
+		if (!filters || !filters.length)
+			return value;
+		if (!value)
+			return value;
+		value = '' + value;
+		for (let f of filters) {
+			switch (f) {
+				case 'trim':
+					value = value.trim();
+					break;
+				case 'upper':
+					value = value.toUpperCase();
+					break;
+				case 'lower':
+					value = value.toLowerCase();
+					break;
+				case 'barcode':
+					value = toLatin(value);
+			}
+		}
+		return value;
+	}
+
 	function textContains(text, probe) {
 		if (!probe)
 			return true;
@@ -847,6 +910,21 @@ app.modules['std:utils'] = function () {
 		// toFixed = avoid js rounding error
 		let r = Number(Math.round(n.toFixed(12) + `e${digits}`) + `e-${digits}`);
 		return m ? -r : r;
+	}
+
+	function propFromPath(path) {
+		if (!path)
+			return '';
+		let propIx = path.lastIndexOf('.');
+		return path.substring(propIx + 1);
+	}
+
+	function defPropertyGet(trg, prop, get) {
+		Object.defineProperty(trg, prop, {
+			enumerable: true,
+			configurable: true, /* needed */
+			get: get
+		});
 	}
 };
 
@@ -1508,15 +1586,13 @@ app.modules['std:modelInfo'] = function () {
 
 // Copyright © 2015-2021 Alex Kukhtin. All rights reserved.
 
-// 20210201-7744
+// 20210620-7785
 /* services/http.js */
 
 app.modules['std:http'] = function () {
 
 	const eventBus = require('std:eventBus');
 	const urlTools = require('std:url');
-
-	let fc = null;
 
 	return {
 		get,
@@ -1526,65 +1602,53 @@ app.modules['std:http'] = function () {
 		localpost
 	};
 
-	function blob2String(blob, callback) {
-		const fr = new FileReader();
-		fr.addEventListener('loadend', (e) => {
-			const text = fr.result;
-			callback(text);
-		});
-		fr.readAsText(blob);
-	}
-
-	function doRequest(method, url, data, raw, skipEvents) {
-		return new Promise(function (resolve, reject) {
-			let xhr = new XMLHttpRequest();
-
-			xhr.onload = function (response) {
-				if (!skipEvents)
-					eventBus.$emit('endRequest', url);
-				if (xhr.status === 200) {
-					if (raw) {
-						resolve(xhr.response);
-						return;
-					}
-					let ct = xhr.getResponseHeader('content-type') || '';
-					let xhrResult = xhr.responseText;
-					if (ct && ct.indexOf('application/json') !== -1)
-						xhrResult = xhr.responseText ? JSON.parse(xhr.responseText) : '';
-					resolve(xhrResult);
-				}
-				else if (xhr.status === 255) {
-					if (raw) {
-						if (xhr.response instanceof Blob)
-							blob2String(xhr.response, (msg) => reject('server error: ' + msg));
-						else
-							reject(xhr.statusText); // response is blob!
-					}
-					else
-						reject(xhr.responseText || xhr.statusText);
-				} else if (xhr.status === 473 /*non standard */) {
-					if (xhr.statusText === 'Unauthorized') {
+	async function doRequest(method, url, data, raw, skipEvents) {
+		if (!skipEvents)
+			eventBus.$emit('beginRequest', url);
+		try {
+			var response = await fetch(url, {
+				method,
+				mode: 'same-origin',
+				headers: {
+					'X-Requested-With': 'XMLHttpRequest',
+					'Accept': 'application/json, text/html'
+				},
+				body: data
+			});
+			let ct = response.headers.get("content-type") || '';
+			switch (response.status) {
+				case 200:
+					if (raw)
+						return await response.blob();
+					if (ct.startsWith('application/json'))
+						return await response.json();
+					return await response.text();
+					break;
+				case 255:
+					let txt = response.statusText;
+					if (ct.startsWith('text/'))
+						txt = await response.text();
+					throw txt;
+				case 473: /*non standard */
+					if (response.statusText === 'Unauthorized') {
 						// go to login page
-						window.location.assign('/');
+						setTimeout(() => {
+							window.location.assign('/');
+						}, 10)
+						throw '__blank__';
 					}
-				}
-				else
-					reject(xhr.statusText);
-			};
-			xhr.onerror = function (response) {
-				if (!skipEvents)
-					eventBus.$emit('endRequest', url);
-				reject(xhr.statusText);
-			};
-			xhr.open(method, url, true);
-			xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-			xhr.setRequestHeader('Accept', 'application/json, text/html');
-			if (raw)
-				xhr.responseType = "blob";
+					break;
+				default:
+					throw response.statusText;
+			}
+		}
+		catch (err) {
+			throw err;
+		}
+		finally {
 			if (!skipEvents)
-				eventBus.$emit('beginRequest', url);
-			xhr.send(data);
-		});
+				eventBus.$emit('endRequest', url);
+		}
 	}
 
 	function get(url, raw) {
@@ -1595,27 +1659,35 @@ app.modules['std:http'] = function () {
 		return doRequest('POST', url, data, raw, skipEvents);
 	}
 
-	function upload(url, data) {
-		return new Promise(function (resolve, reject) {
-			let xhr = new XMLHttpRequest();
-			xhr.onload = function (response) {
-				eventBus.$emit('endRequest', url);
-				if (xhr.status === 200) {
-					let xhrResult = xhr.responseText ? JSON.parse(xhr.responseText) : '';
-					resolve(xhrResult);
-				} else if (xhr.status === 255) {
-					reject(xhr.responseText || xhr.statusText);
-				}
-			};
-			xhr.onerror = function (response) {
-				alert('Error');
-			};
-			xhr.open("POST", url, true);
-			xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-			xhr.setRequestHeader('Accept', 'application/json');
-			eventBus.$emit('beginRequest', url);
-			xhr.send(data);
-		});
+	async function upload(url, data) {
+		eventBus.$emit('beginRequest', url);
+		try {
+			var response = await fetch(url, {
+				method: 'POST',
+				headers: {
+					'X-Requested-With': 'XMLHttpRequest',
+					'Accept': 'application/json'
+				},
+				body: data
+			});
+			let ct = response.headers.get("content-type") || '';
+			switch (response.status) {
+				case 200:
+					if (ct.startsWith('application/json'))
+						return await response.json();
+					return await response.text();
+				case 255:
+					let txt = response.statusText;
+					if (ct.startsWith('text/'))
+						txt = await response.text();
+					throw txt;
+			}
+
+		} catch (err) {
+			throw err;
+		} finally {
+			eventBus.$emit('endRequest', url);
+		}
 	}
 
 	function load(url, selector, baseUrl) {
@@ -1685,35 +1757,28 @@ app.modules['std:http'] = function () {
 		});
 	}
 
-	function localpost(command, data) {
-		return new Promise(function (resolve, reject) {
-			let xhr = new XMLHttpRequest();
-
-			xhr.onload = function (response) {
-				if (xhr.status === 200) {
-					let ct = xhr.getResponseHeader('content-type');
-					let xhrResult = xhr.responseText;
-					if (ct.indexOf('application/json') !== -1)
-						xhrResult = JSON.parse(xhr.responseText);
-					resolve(xhrResult);
-				}
-				else if (xhr.status === 255) {
-					reject(xhr.responseText || xhr.statusText);
-				}
-				else {
-					reject(xhr.statusText);
-				}
-			};
-			xhr.onerror = function (response) {
-				reject(response);
-			};
-			let url = "http://127.0.0.1:64031/" + command;
-			xhr.open("POST", url, true);
-			xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-			xhr.setRequestHeader('Accept', 'text/plain');
-			xhr.setRequestHeader('Content-Type', 'text/plain');
-			xhr.send(data);
+	async function localpost(command, data) {
+		let url = "http://127.0.0.1:64031/" + command;
+		let response = await fetch(url, {
+			method: 'POST',
+			headers: {
+				'X-Requested-With': 'XMLHttpRequest',
+				'Accept': 'text/plain',
+				'Content-Type': 'text/plain'
+			},
+			body: data
 		});
+
+		if (response.status == 200) {
+			let ct = response.headers.get("content-type") || '';
+			if (ct.startsWith('application/json'))
+				return await response.json();
+			return await response.text();
+		} else if (response.status == 255) {
+			throw await response.text() || response.statusText;
+		} else {
+			throw response.statusText;
+		}
 	}
 };
 
@@ -2156,12 +2221,15 @@ app.modules['std:validators'] = function () {
 
 // Copyright © 2015-2021 Alex Kukhtin. All rights reserved.
 
-/*20210211-7747*/
+/*20210623-7786*/
 /* services/impl/array.js */
 
 app.modules['std:impl:array'] = function () {
 
 	const utils = require('std:utils');
+	const platform = require('std:platform');
+
+	const defPropertyGet = utils.func.defPropertyGet;
 
 	return {
 		defineArray,
@@ -2238,6 +2306,20 @@ app.modules['std:impl:array'] = function () {
 
 
 		addResize(arr);
+		addLoad(arr);
+		addProperties(arr);
+
+		arr.Selected = function (propName) {
+			let sel = this.$selected;
+			return sel ? sel[propName] : null;
+		};
+
+
+		arr.$reload = function () {
+			this.$lock = false;
+			return this.$vm.$reload(this);
+		}
+
 	}
 
 	function addResize(arr) {
@@ -2385,6 +2467,94 @@ app.modules['std:impl:array'] = function () {
 
 	}
 
+	function addLoad(arr) {
+
+		arr.$isLazy = function () {
+			const meta = this.$parent._meta_;
+			if (!meta.$lazy) return false;
+			let prop = utils.model.propFromPath(this._path_);
+			return meta.$lazy.indexOf(prop) !== -1;
+		};
+
+		arr.$resetLazy = function () {
+			this.$lock = false;
+			this.$empty();
+			if (this.$loaded)
+				this.$loaded = false;
+			return this;
+		};
+
+		arr.$loadLazy = function () {
+			if (!this.$isLazy())
+				return;
+			if (this.$lock) return;
+			return new Promise((resolve, _) => {
+				if (!this.$vm) return;
+				if (this.$loaded) { resolve(this); return; }
+				if (!this.$parent) { resolve(this); return; }
+				const meta = this.$parent._meta_;
+				if (!meta.$lazy) { resolve(this); return; }
+				let prop = utils.model.propFromPath(this._path_);
+				if (meta.$lazy.indexOf(prop) === -1) { resolve(this); return; }
+				this.$vm.$loadLazy(this.$parent, prop).then(() => resolve(this));
+			});
+		};
+
+		arr.$load = function () {
+			if (!this.$isLazy()) return;
+			platform.defer(() => this.$loadLazy());
+		};
+
+	}
+
+	function addProperties(arr) {
+		defPropertyGet(arr, "$selected", function () {
+			for (let x of this.$elements) {
+				if (x.$selected) {
+					return x;
+				}
+			}
+			return undefined;
+		});
+
+		defPropertyGet(arr, "$selectedIndex", function () {
+			for (let i = 0; i < this.length; i++) {
+				if (this[i].$selected) return i;
+			}
+			return -1;
+		});
+
+		defPropertyGet(arr, "$elements", function () {
+			function* elems(arr) {
+				for (let i = 0; i < arr.length; i++) {
+					let val = arr[i];
+					yield val;
+					if (val.$items) {
+						yield* elems(val.$items);
+					}
+				}
+			}
+			return elems(this);
+		});
+
+		defPropertyGet(arr, "Count", function () {
+			return this.length;
+		});
+
+		defPropertyGet(arr, "$isEmpty", function () {
+			return !this.length;
+		});
+
+		defPropertyGet(arr, "$checked", function () {
+			return this.filter((el) => el.$checked);
+		});
+
+		defPropertyGet(arr, "$hasSelected", function () {
+			return !!this.$selected;
+		});
+
+	}
+
 	function defineArrayItemProto(elem) {
 		let proto = elem.prototype;
 
@@ -2404,7 +2574,7 @@ app.modules['std:impl:array'] = function () {
 				// expand all parent items
 				let p = this._parent_._parent_;
 				while (p) {
-					if (!p || p === this.$root)
+					if (!p || p === this.$root || !utils.isDefined(p.$expanded))
 						break;
 					p.$expanded = true;
 					p = p._parent_._parent_;
@@ -2417,16 +2587,13 @@ app.modules['std:impl:array'] = function () {
 
 /* Copyright © 2015-2021 Alex Kukhtin. All rights reserved.*/
 
-/*20210211-7747*/
+/*20210531-7776*/
 // services/datamodel.js
 
 /*
  * TODO: template & validate => /impl
- * arr.$checked => /impl/array
- * arr.$load/lazy => /impl/array
  * treeImpl => /impl/tree
  * ensureType to std:utils
- * try minimize by grunt
  */
 
 (function () {
@@ -2486,13 +2653,7 @@ app.modules['std:impl:array'] = function () {
 		});
 	}
 
-	function defPropertyGet(trg, prop, get) {
-		Object.defineProperty(trg, prop, {
-			enumerable: true,
-			configurable: true, /* needed */
-			get: get
-		});
-	}
+	const defPropertyGet = utils.func.defPropertyGet;
 
 	function ensureType(type, val) {
 		if (!utils.isDefined(val))
@@ -2506,12 +2667,7 @@ app.modules['std:impl:array'] = function () {
 		return val;
 	}
 
-	function propFromPath(path) {
-		if (!path)
-			return '';
-		let propIx = path.lastIndexOf('.');
-		return path.substring(propIx + 1);
-	}
+	const propFromPath = utils.model.propFromPath;
 
 	function defSource(trg, source, prop, parent) {
 
@@ -2994,100 +3150,7 @@ app.modules['std:impl:array'] = function () {
 	function addArrayProps(arr) {
 
 		defineCommonProps(arr);
-
 		arrtool.defineArray(arr);
-
-		defPropertyGet(arr, "$selected", function () {
-			for (let x of this.$elements) {
-				if (x.$selected) {
-					return x;
-				}
-			}
-			return undefined;
-		});
-
-		defPropertyGet(arr, "$selectedIndex", function () {
-			for (let i = 0; i < this.length; i++) {
-				if (this[i].$selected) return i;
-			}
-			return -1;
-		});
-
-		defPropertyGet(arr, "$elements", function () {
-			function* elems(arr) {
-				for (let i = 0; i < arr.length; i++) {
-					let val = arr[i];
-					yield val;
-					if (val.$items) {
-						yield* elems(val.$items);
-					}
-				}
-			}
-			return elems(this);
-		});
-
-		defPropertyGet(arr, "Count", function () {
-			return this.length;
-		});
-
-		defPropertyGet(arr, "$isEmpty", function () {
-			return !this.length;
-		});
-
-		defPropertyGet(arr, "$checked", function () {
-			return this.filter((el) => el.$checked);
-		});
-
-		defPropertyGet(arr, "$hasSelected", function () {
-			return !!this.$selected;
-		});
-
-		arr.Selected = function (propName) {
-			let sel = this.$selected;
-			return sel ? sel[propName] : null;
-		};
-
-		arr.$isLazy = function () {
-			const meta = this.$parent._meta_;
-			if (!meta.$lazy) return false;
-			let prop = propFromPath(this._path_);
-			return meta.$lazy.indexOf(prop) !== -1;
-		};
-
-		arr.$load = function () {
-			if (!this.$isLazy()) return;
-			platform.defer(() => this.$loadLazy());
-		};
-
-		arr.$resetLazy = function () {
-			this.$lock = false;
-			this.$empty();
-			if (this.$loaded)
-				this.$loaded = false;
-			return this;
-		};
-
-		arr.$loadLazy = function () {
-			if (!this.$isLazy())
-				return;
-			if (this.$lock) return;
-			return new Promise((resolve, reject) => {
-				if (!this.$vm) return;
-				if (this.$loaded) { resolve(this); return; }
-				if (!this.$parent) { resolve(this); return; }
-				const meta = this.$parent._meta_;
-				if (!meta.$lazy) { resolve(this); return; }
-				let prop = propFromPath(this._path_);
-				if (meta.$lazy.indexOf(prop) === -1) { resolve(this); return; }
-				this.$vm.$loadLazy(this.$parent, prop).then(() => resolve(this));
-			});
-		};
-
-		arr.$reload = function () {
-			this.$lock = false;
-			return this.$vm.$reload(this);
-		}
-
 		arr.__fireChange__ = function (opts) {
 			let root = this.$root;
 			let itm = this;
@@ -3679,11 +3742,6 @@ app.modules['std:impl:array'] = function () {
 			xProp[typeName][propName] = pv;
 		}
 		template._props_ = xProp;
-        /*
-        platform.defer(() => {
-            console.dir('end init');
-        });
-        */
 	}
 
 	function setRootRuntimeInfo(runtime) {
@@ -3752,9 +3810,9 @@ app.modules['std:impl:array'] = function () {
 
 
 
-// Copyright © 2015-2018 Alex Kukhtin. All rights reserved.
+// Copyright © 2015-2021 Alex Kukhtin. All rights reserved.
 
-/*20171029-7060*/
+/*20210627-7787*/
 /* services/popup.js */
 
 app.modules['std:popup'] = function () {
@@ -3794,6 +3852,7 @@ app.modules['std:popup'] = function () {
 		document.body.addEventListener('click', closePopups);
 		document.body.addEventListener('contextmenu', closePopups);
 		document.body.addEventListener('keydown', closeOnEsc);
+		document.body.addEventListener("mouseup", closeContextMenus);
 	}
 
 
@@ -3803,10 +3862,20 @@ app.modules['std:popup'] = function () {
 	}
 
 	function closeAllPopups() {
+		closeContextMenus();
 		__dropDowns__.forEach((el) => {
 			if (el._close)
 				el._close(document);
 		});
+	}
+
+	function closeContextMenus() {
+		let ctxmenus = document.querySelectorAll('.contextmenu');
+		if (ctxmenus != null) {
+			for (let menu of ctxmenus) {
+				menu.classList.remove('show');
+			}
+		}
 	}
 
 	function closeInside(el) {
@@ -3822,6 +3891,7 @@ app.modules['std:popup'] = function () {
 	}
 
 	function closePopups(ev) {
+		closeContextMenus();
 		if (__dropDowns__.length === 0)
 			return;
 		for (let i = 0; i < __dropDowns__.length; i++) {
@@ -4468,9 +4538,9 @@ app.modules['std:accel'] = function () {
 	}
 };
 
-// Copyright © 2015-2020 Alex Kukhtin. All rights reserved.
+// Copyright © 2015-2021 Alex Kukhtin. All rights reserved.
 
-// 20200903-7705
+// 20210618-7785
 /*components/include.js*/
 
 (function () {
@@ -4537,7 +4607,10 @@ app.modules['std:accel'] = function () {
 				}, 1);
 			},
 			error(msg) {
-				msg = msg || '';
+				if (msg instanceof Error)
+					msg = msg.message;
+				else
+					msg = msg || '';
 				if (this.insideDialog)
 					eventBus.$emit('modalClose', false);
 				if (msg.indexOf('UI:') === 0) {
@@ -4938,7 +5011,7 @@ Vue.component('validator-control', {
 */
 // Copyright © 2015-2021 Alex Kukhtin. All rights reserved.
 
-/*20210414-7765*/
+/*20210531-7776*/
 /*components/textbox.js*/
 
 /* password-- fake fields are a workaround for chrome autofill getting the wrong fields -->*/
@@ -5022,7 +5095,8 @@ Vue.component('validator-control', {
 			number: Boolean,
 			spellCheck: { type: Boolean, default: undefined },
 			enterCommand: Function,
-			hasClear: Boolean
+			hasClear: Boolean,
+			filters: Array
 		},
 		computed: {
 			controlType() {
@@ -5037,11 +5111,14 @@ Vue.component('validator-control', {
 			}
 		},
 		methods: {
+			doFilter(value) {
+				return utils.text.applyFilters(this.filters, value);
+			},
 			updateValue(value) {
 				if (this.mask)
-					this.item[this.prop] = mask.getUnmasked(this.mask, value);
+					this.item[this.prop] = mask.getUnmasked(this.mask, this.doFilter(value));
 				else
-					this.item[this.prop] = utils.parse(value, this.dataType);
+					this.item[this.prop] = utils.parse(this.doFilter(value), this.dataType);
 				let mv = this.modelValue;
 				if (this.$refs.input.value !== mv) {
 					this.$refs.input.value = mv;
@@ -5095,7 +5172,8 @@ Vue.component('validator-control', {
 			rows: Number,
 			spellCheck: { type: Boolean, default: undefined },
 			enterCommand: Function,
-			maxHeight: String
+			maxHeight: String,
+			filters: Array
 		},
 		computed: {
 			modelValue2() {
@@ -5110,6 +5188,7 @@ Vue.component('validator-control', {
 		},
 		methods: {
 			updateValue(value) {
+				value = utils.text.applyFilters(this.filters, value);
 				if (this.item[this.prop] === value) return;
 				this.item[this.prop] = value;
 				this.$emit('change', this.item[this.prop]);
@@ -7542,7 +7621,7 @@ Vue.component('popover', {
 		template: `
 <li @click.stop.prevent="doClick(item)" :title=title v-on:dblclick.stop.prevent="doDblClick(item)"
 	v-show=isItemVisible
-	:class="{expanded: isExpanded, collapsed:isCollapsed, active:isItemSelected, folder:isFolder, group: isItemGroup}" >
+	:class="[cssClass, {expanded: isExpanded, collapsed:isCollapsed, active:isItemSelected, folder:isFolder, group: isItemGroup}]" >
 	<div :class="{overlay:true, 'no-icons': !options.hasIcon}">
 		<a class="toggle" v-if="isFolder" href @click.stop.prevent=toggle></a>
 		<span v-else class="toggle"/>
@@ -7664,6 +7743,12 @@ Vue.component('popover', {
 			},
 			dataHref() {
 				return this.getHref ? this.getHref(this.item) : '';
+			},
+			cssClass() {
+				if (!this.options) return undefined;
+				let xname = this.options.xtraClass;
+				if (!xname) return undefined;
+				return this.item[xname] || undefined;
 			}
 		},
 		watch: {
@@ -7695,6 +7780,7 @@ Vue.component('popover', {
 		:item="itm" :key="index"
 		:click="click" :doubleclick="doubleclick" :is-active="isActive" :is-group="isGroup" :expand="expand" :root-items="items">
 	</tree-item>
+	<slot name=contextmenu></slot>
 </ul>`,
 		props: {
 			options: Object,
@@ -8310,9 +8396,9 @@ const maccel = require('std:accel');
 		},
 	});
 })();
-// Copyright © 2015-2020 Alex Kukhtin. All rights reserved.
+// Copyright © 2015-2021 Alex Kukhtin. All rights reserved.
 
-// 20201106-7720
+// 20210704-7793
 // components/upload.js
 
 (function () {
@@ -8320,6 +8406,8 @@ const maccel = require('std:accel');
 	const url = require('std:url');
 	const http = require('std:http');
 	const tools = require('std:tools');
+	const utils = require('std:utils');
+
 
 	const locale = window.$$locale;
 
@@ -8380,6 +8468,8 @@ const maccel = require('std:accel');
 			uploadImage(ev) {
 				let root = window.$$rootUrl;
 				let id = this.item[this.prop];
+				if (utils.isObjectExact(id))
+					id = id.$id;
 				let imgUrl = url.combine(root, '_image', this.base, this.prop, id);
 				var fd = new FormData();
 				for (let file of ev.target.files) {
@@ -8406,8 +8496,14 @@ const maccel = require('std:accel');
 								ni[token] = elem.Token;
 							}
 						} else {
-							this.item[this.prop] = result.elems[0].Id;
-							this.item[token] = result.elems[0].Token;
+							let elem = this.item[this.prop];
+							if (utils.isObjectExact(elem)) {
+								elem[elem._meta_.$id] = result.elems[0].Id;
+								elem[elem._meta_.$token] = result.elems[0].Token;
+							} else {
+								this.item[this.prop] = result.elems[0].Id;
+								this.item[token] = result.elems[0].Token;
+							}
 						}
 					}
 				}).catch(msg => {
@@ -8705,7 +8801,7 @@ TODO:
 	<template v-if="itemsSource">
 		<li class="a2-list-item" tabindex="1" :class="cssClass(listItem)" v-for="(listItem, listItemIndex) in source" :key="listItemIndex" 
 				@mousedown.prevent="select(listItem)" @keydown="keyDown" 
-				ref="li">
+				ref="li" v-on:dblclick.prevent="doDblClick">
 			<span v-if="listItem.__group" v-text="listItem.__group"></span>
 			<slot name="items" :item="listItem" v-if="!listItem.__group"/>
 		</li>
@@ -8730,7 +8826,8 @@ TODO:
 			hover: {
 				type: Boolean, default: true
 			},
-			groupBy: String
+			groupBy: String,
+			doubleclick: Function
 		},
 		computed: {
 			selectedSource() {
@@ -8869,6 +8966,11 @@ TODO:
 				}
 				e.preventDefault();
 				e.stopPropagation();
+			},
+			doDblClick($event) {
+				$event.stopImmediatePropagation();
+				if (this.doubleclick)
+					this.doubleclick();
 			}
 		},
 		created() {
@@ -9479,9 +9581,9 @@ TODO:
 
 	app.components['std:toastr'] = toastrComponent;
 })();
-// Copyright © 2015-2020 Alex Kukhtin. All rights reserved.
+// Copyright © 2015-2021 Alex Kukhtin. All rights reserved.
 
-// 20201119-7731
+// 20210704-7793
 // components/image.js
 
 (function () {
@@ -9534,12 +9636,10 @@ TODO:
 				if (this.newItem)
 					return undefined;
 				let root = window.$$rootUrl;
-				let id = this.item[this.prop];
-				if (!id) return undefined;
-				let qry = {};
-				if (this.item._meta_ && this.item._meta_.$token)
-					qry.token = this.item[this.item._meta_.$token];
-				return url.combine(root, '_image', this.base, this.prop, id) + url.makeQueryString(qry);
+				let elem = this.imageOjb;
+				if (!elem || !elem.id)
+					return undefined;
+				return url.combine(root, '_image', this.base, this.prop, elem.id) + url.makeQueryString({ token: elem.token });
 			},
 			tip() {
 				if (this.readOnly) return this.placeholder;
@@ -9565,7 +9665,16 @@ TODO:
 				if (this.newItem) return true;
 				if (this.readOnly)
 					return !this.hasImage;
-				return !this.inArray && !this.item[this.prop];
+				return !this.inArray && !this.hasImage;
+			},
+			imageOjb() {
+				let elem = this.item[this.prop];
+				if (!elem)
+					return undefined;
+				if (utils.isObjectExact(elem))
+					return { id: elem.$id, token: elem[elem._meta_.$token] };
+				else
+					return { id: elem, token: this.item[this.item._meta_.$token] };
 			},
 			itemForUpload() {
 				return this.newItem ? this.newElem : this.item;
@@ -9575,8 +9684,13 @@ TODO:
 			removeImage: function () {
 				if (this.inArray)
 					this.item.$remove();
-				else
-					this.item[this.prop] = undefined;
+				else {
+					let elem = this.item[this.prop];
+					if (utils.isObjectExact(elem))
+						elem.$empty();
+					else
+						this.item[this.prop] = undefined;
+				}
 			},
 			clickOnImage: function () {
 				//alert('click on image');
@@ -10302,7 +10416,7 @@ Vue.component('a2-panel', {
 
 // Copyright © 2015-2021 Alex Kukhtin. All rights reserved.
 
-// 20210201-7744
+// 20210606-7781
 // components/debug.js*/
 
 (function () {
@@ -10451,7 +10565,7 @@ Vue.component('a2-panel', {
 				const url = urlTools.combine(root, '_shell/trace');
 				const that = this;
 				// with skip events
-				http.post(url, null, null, true).then(function (result) {
+				http.post(url, null, false, true).then(function (result) {
 					that.trace.splice(0, that.trace.length);
 					if (!result) return;
 					result.forEach((val) => {
@@ -10830,69 +10944,93 @@ Vue.directive('disable', {
 
 // Copyright © 2015-2021 Alex Kukhtin. All rights reserved.
 
-/*20210209-7445*/
+/*20210627-7788*/
 /* directives/dropdown.js */
 
+(function () {
 
-Vue.directive('dropdown', {
-	bind(el, binding, vnode) {
+	const popup = require('std:popup');
+	const eventBus = require('std:eventBus');
 
-		const popup = require('std:popup');
-		let me = this;
+	Vue.directive('dropdown', {
+		bind(el, binding, vnode) {
 
-		el._btn = el.querySelector('[toggle]');
-		el.setAttribute('dropdown-top', '');
-		// el.focus(); // ???
-		if (!el._btn) {
-			console.error('DropDown does not have a toggle element');
-		}
+			let me = this;
 
-		popup.registerPopup(el);
-
-		el._close = function (ev) {
-			if (el._hide)
-				el._hide();
-			el.classList.remove('show');
-		};
-
-		el.addEventListener('click', function (event) {
-			let trg = event.target;
-			if (el._btn.disabled) return;
-			while (trg) {
-				if (trg === el._btn) break;
-				if (trg === el) return;
-				trg = trg.parentElement;
+			el._btn = el.querySelector('[toggle]');
+			el.setAttribute('dropdown-top', '');
+			// el.focus(); // ???
+			if (!el._btn) {
+				console.error('DropDown does not have a toggle element');
 			}
-			if (trg === el._btn) {
-				event.preventDefault();
-				event.stopPropagation();
-				let isVisible = el.classList.contains('show');
-				if (isVisible) {
-					if (el._hide)
-						el._hide();
-					el.classList.remove('show');
-				} else {
-					// not nested popup
-					let outer = popup.closest(el, '.popup-body');
-					if (outer) {
-						popup.closeInside(outer);
-					} else {
-						popup.closeAll();
-					}
-					if (el._show)
-						el._show();
-					el.classList.add('show');
+
+			popup.registerPopup(el);
+
+			el._close = function (ev) {
+				if (el._hide)
+					el._hide();
+				el.classList.remove('show');
+			};
+
+			el.addEventListener('click', function (event) {
+				let trg = event.target;
+				if (el._btn.disabled) return;
+				while (trg) {
+					if (trg === el._btn) break;
+					if (trg === el) return;
+					trg = trg.parentElement;
 				}
-			}
-		});
-	},
-	unbind(el) {
-		const popup = require('std:popup');
-		popup.unregisterPopup(el);
-	}
-});
+				if (trg === el._btn) {
+					event.preventDefault();
+					event.stopPropagation();
+					let isVisible = el.classList.contains('show');
+					if (isVisible) {
+						if (el._hide)
+							el._hide();
+						el.classList.remove('show');
+					} else {
+						// not nested popup
+						let outer = popup.closest(el, '.popup-body');
+						if (outer) {
+							popup.closeInside(outer);
+						} else {
+							popup.closeAll();
+						}
+						if (el._show)
+							el._show();
+						el.classList.add('show');
+					}
+				}
+			});
+		},
+		unbind(el) {
+			const popup = require('std:popup');
+			popup.unregisterPopup(el);
+		}
+	});
 
+	Vue.directive('contextmenu', {
+		_contextMenu(ev) {
+			ev.preventDefault();
+			ev.stopPropagation();
+			ev.target.click();
+			let menu = document.querySelector('#' + this._val);
+			let br = menu.parentNode.getBoundingClientRect();
+			let style = menu.style;
+			style.top = (ev.clientY - br.top) + 'px';
+			style.left = (ev.clientX - br.left) + 'px';
+			menu.classList.add('show');
+		},
+		bind(el, binding) {
+			binding._val = binding.value;
+			el.addEventListener('contextmenu', binding.def._contextMenu.bind(binding));
+		},
+		unbind(el, binding) {
+			el.removeEventListener('contextmenu', binding.def._contextMenu.bind(binding));
+		}
+	});
 
+})();
 // Copyright © 2015-2019 Alex Kukhtin. All rights reserved.
 
 /*20190721-7507*/
@@ -11247,7 +11385,7 @@ Vue.directive('resize', {
 
 // Copyright © 2015-2021 Alex Kukhtin. All rights reserved.
 
-/*20210419-7768*/
+/*20210621-7785*/
 // controllers/base.js
 
 (function () {
@@ -11513,6 +11651,8 @@ Vue.directive('resize', {
 						else
 							throw new Error('Invalid response type for $invoke');
 					}).catch(function (msg) {
+						if (msg === '__blank__')
+							return; // already done
 						if (opts && opts.catchError) {
 							reject(msg);
 						} else {
@@ -12091,6 +12231,7 @@ Vue.directive('resize', {
 
 				let cmd = 'show';
 				let fmt = '';
+				let viewer = 'report';
 				if (opts) {
 					if (opts.export) {
 						cmd = 'export';
@@ -12099,6 +12240,8 @@ Vue.directive('resize', {
 						cmd = 'attach';
 					else if (opts.print)
 						cmd = 'print';
+					if (opts.viewer && cmd === 'show')
+						viewer = opts.viewer;
 				}
 
 				const doReport = () => {
@@ -12106,7 +12249,7 @@ Vue.directive('resize', {
 					if (arg && utils.isObject(arg))
 						id = utils.getStringId(arg);
 					const root = window.$$rootUrl;
-					let url = `${root}/report/${cmd}/${id}`;
+					let url = `${root}/${viewer}/${cmd}/${id}`;
 					let reportUrl = urltools.removeFirstSlash(repBaseUrl) || this.$indirectUrl || this.$baseUrl;
 					let baseUrl = urltools.makeBaseUrl(reportUrl);
 					let qry = Object.assign({}, { base: baseUrl, rep: rep }, data);
@@ -12980,7 +13123,7 @@ Vue.directive('resize', {
 	<div class="side-bar-body" v-if="bodyIsVisible">
 		<tree-view :items="sideMenu" :is-active="isActive" :is-group="isGroup" :click="navigate" :get-href="itemHref"
 			:options="{folderSelect: folderSelect, label: 'Name', title: 'Description',
-			subitems: 'Menu', expandAll:true,
+			subitems: 'Menu', expandAll:true, xtraClass:'ClassName',
 			icon:'Icon', wrapLabel: true, hasIcon: true}">
 		</tree-view>
 	</div>
@@ -13045,37 +13188,29 @@ Vue.directive('resize', {
 		tabSideBar: a2TabSideBar
 	};
 })();	
-// Copyright © 2015-2021 Alex Kukhtin. All rights reserved.
+// Copyright © 2021 Alex Kukhtin. All rights reserved.
 
-/*20210428-7771*/
-/* controllers/shell.js */
+/*20210606-7781*/
+/* controllers/appheader.js */
 
 (function () {
 
-	const store = component('std:store');
-	const eventBus = require('std:eventBus');
-	const modal = component('std:modal');
-	const toastr = component('std:toastr');
-	const popup = require('std:popup');
-	const urlTools = require('std:url');
-	const period = require('std:period');
-	const log = require('std:log');
-	const utils = require('std:utils');
 	const locale = window.$$locale;
-	const platform = require('std:platform');
-	const navBar = component('std:navbar');
-	const sideBar = component('std:sidebar');
-	const menu = component('std:navmenu');
+	const eventBus = require('std:eventBus');
+	const menuTools = component('std:navmenu');
 
 	const a2AppHeader = {
 		template: `
 <header class="header">
 	<div class=h-menu v-if=isNavBarMenu @click.stop.prevent=clickMenu><i class="ico ico-grid2"></i></div>
-	<div class=h-block v-if='!isNavBarMenu'>
+	<a class=h-block v-if='!isNavBarMenu' @click.stop.prevent=root href='/'  tabindex="-1">
 		<!--<i class="ico-user"></i>-->
-		<a class=app-title href='/' @click.prevent="root" v-text="title" tabindex="-1"></a>
+		<span class="app-logo" v-if=hasLogo>
+			<img :src="logoSrc" />
+		</span>
+		<span class=app-title v-text="title"></span>
 		<span class=app-subtitle v-text="subtitle"></span>
-	</div>
+	</a>
 	<div v-if=isNavBarMenu class=h-menu-title v-text=seg0text></div>
 	<div class="aligner"></div>
 	<span class="title-notify" v-if="notifyText" v-text="notifyText" :title="notifyText" :class="notifyClass"></span>
@@ -13119,7 +13254,8 @@ Vue.directive('resize', {
 			feedbackVisible: Boolean,
 			singlePage: String,
 			changePassword: Function,
-			navBarMode: String
+			navBarMode: String,
+			logo: String
 		},
 		computed: {
 			isSinglePage() {
@@ -13137,6 +13273,12 @@ Vue.directive('resize', {
 			},
 			hasFeedback() {
 				return this.appData && this.appData.feedback;
+			},
+			hasLogo() {
+				return this.appData && this.appData.appLogo;
+			},
+			logoSrc() {
+				return this.hasLogo ? this.appData.appLogo : '';
 			},
 			profileItems() {
 				return this.appData ? this.appData.profileMenu : null;
@@ -13162,14 +13304,14 @@ Vue.directive('resize', {
 			root() {
 				let opts = { title: null };
 				let currentUrl = this.$store.getters.url;
-				let menuUrl = this.isSinglePage ? ('/' + this.singlePage) : menu.makeMenuUrl(this.menu, '/', opts);
+				let menuUrl = this.isSinglePage ? ('/' + this.singlePage) : menuTools.makeMenuUrl(this.menu, '/', opts);
 				if (currentUrl === menuUrl) {
 					return; // already in root
 				}
 				this.$store.commit('navigate', { url: menuUrl, title: opts.title });
 			},
 			doProfileMenu(itm) {
-				store.commit('navigate', { url: itm.url });
+				this.$store.commit('navigate', { url: itm.url });
 			},
 			clickMenu() {
 				if (this.isNavBarMenu) {
@@ -13178,6 +13320,30 @@ Vue.directive('resize', {
 			}
 		}
 	};
+
+	app.components['std:appHeader'] = a2AppHeader;
+})();	
+// Copyright © 2021 Alex Kukhtin. All rights reserved.
+
+/*20210608-7782*/
+/* controllers/mainview.js */
+
+(function () {
+
+	const store = component('std:store');
+	const period = require('std:period');
+	const eventBus = require('std:eventBus');
+
+	const modal = component('std:modal');
+	const toastr = component('std:toastr');
+	const utils = require('std:utils');
+
+	const platform = require('std:platform');
+	const navBar = component('std:navbar');
+	const sideBar = component('std:sidebar');
+	const urlTools = require('std:url');
+	const menu = component('std:navmenu');
+	const locale = window.$$locale;
 
 	const contentView = {
 		render(h) {
@@ -13231,6 +13397,7 @@ Vue.directive('resize', {
 			});
 		}
 	};
+
 
 	const a2MainView = {
 		store,
@@ -13318,6 +13485,8 @@ Vue.directive('resize', {
 			cssClass() {
 				let cls = (this.isNavBarMenu ? 'nav-bar-menu ' : '') +
 					'side-bar-position-' + (this.isSideBarTop ? 'top ' : 'left ');
+				if (this.isSideBarCompact)
+					cls += 'compact-side-bar ';
 				if (this.isSideBarTop)
 					cls += !this.sideBarVisible ? 'side-bar-hidden' : '';
 				else
@@ -13326,7 +13495,7 @@ Vue.directive('resize', {
 			},
 			pendingRequest() { return !this.hasModals && this.requestsCount > 0; },
 			hasModals() { return this.modals.length > 0; },
-			isNavBarMenu() {return this.navBarMode === 'Menu';}
+			isNavBarMenu() { return this.navBarMode === 'Menu'; }
 		},
 		methods: {
 			setupWrapper(dlg) {
@@ -13348,12 +13517,12 @@ Vue.directive('resize', {
 				this.showNavBar = false;
 			eventBus.$on('beginRequest', function () {
 				//if (me.hasModals)
-					//return;
+				//return;
 				me.requestsCount += 1;
 			});
 			eventBus.$on('endRequest', function () {
 				//if (me.hasModals)
-					//return;
+				//return;
 				me.requestsCount -= 1;
 			});
 
@@ -13379,7 +13548,7 @@ Vue.directive('resize', {
 				if (raw)
 					url = urlTools.combine(root, modal, id);
 				url = store.replaceUrlQuery(url, prms.query);
-				let dlg = { title: "dialog", url: url, prms: prms.data, wrap:false, rd: prms.rd };
+				let dlg = { title: "dialog", url: url, prms: prms.data, wrap: false, rd: prms.rd };
 				dlg.promise = new Promise(function (resolve, reject) {
 					dlg.resolve = resolve;
 				});
@@ -13391,7 +13560,7 @@ Vue.directive('resize', {
 			eventBus.$on('modaldirect', function (modal, prms) {
 				let root = window.$$rootUrl;
 				let url = urlTools.combine(root, '/_dialog', modal);
-				let dlg = { title: "dialog", url: url, prms: prms.data, wrap:false };
+				let dlg = { title: "dialog", url: url, prms: prms.data, wrap: false };
 				dlg.promise = new Promise(function (resolve, reject) {
 					dlg.resolve = resolve;
 				});
@@ -13459,7 +13628,7 @@ Vue.directive('resize', {
 				if (dlg.attrs.alwaysOk)
 					result = true;
 
-				if (dlg.attrs.canClose) { 
+				if (dlg.attrs.canClose) {
 					let canResult = dlg.attrs.canClose();
 					//console.dir(canResult);
 					if (canResult === true)
@@ -13497,7 +13666,7 @@ Vue.directive('resize', {
 				me.modals.push(dlg);
 				me.setupWrapper(dlg);
 			});
-
+			
 			if (!this.menu) {
 				let dlgData = {
 					promise: null, data: {
@@ -13548,10 +13717,25 @@ Vue.directive('resize', {
 		}
 	};
 
+	app.components['std:mainView'] = a2MainView;
+})();	
+// Copyright © 2015-2021 Alex Kukhtin. All rights reserved.
+
+/*20210529-7776*/
+/* controllers/shell.js */
+
+(function () {
+
+	const store = component('std:store');
+	const eventBus = require('std:eventBus');
+	const popup = require('std:popup');
+	const period = require('std:period');
+	const log = require('std:log');
+	const locale = window.$$locale;
+	const menu = component('std:navmenu');
+
 	const shell = Vue.extend({
 		components: {
-			'a2-main-view': a2MainView,
-			'a2-app-header': a2AppHeader
 		},
 		store,
 		data() {

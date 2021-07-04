@@ -1,36 +1,103 @@
-﻿<Page xmlns="clr-namespace:A2v10.Xaml;assembly=A2v10.Xaml">
-	<Page.CollectionView>
-		<CollectionView RunAt="ServerUrl" Filter="Fragment" ItemsSource="{Bind Agents}"/>
-	</Page.CollectionView>
-	<Page.Toolbar>
-		<Toolbar>
-			<Button Command="{BindCmd Dialog, Action=Append, Argument={Bind Parent.ItemsSource}, Url='/catalog/agent/edit'}" Icon="Plus" Content="@[Create]"/>
-			<Button Command="{BindCmd Dialog, Action=EditSelected, Argument={Bind Parent.ItemsSource}, Url='/catalog/agent/edit'}" Icon="Edit" Content="@[Edit]"/>
-			<Button Command="{BindCmd Command=DbRemoveSelected, Argument={Bind Parent.ItemsSource}, Confirm='@[AreYouSure]'}" Icon="Delete" Content="@[Delete]"/>
+﻿<!-- Довідник контрагентів -->
+<Page xmlns="clr-namespace:A2v10.Xaml;assembly=A2v10.Xaml"
+		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		xmlns:sys="clr-namespace:System;assembly=mscorlib"
+	>
+	<Page.Resources>
+		<sys:String x:Key="EditItemUrl">/catalog/agent/editItem</sys:String>
+		<sys:String x:Key="EditFolderUrl">/catalog/agent/editFolder</sys:String>
+	</Page.Resources>
+	<Grid Rows="Auto,1*" Columns="MinMax(270px;25%),1px, 1*" Height="100%" Gap="5" Padding="10">
+		<!--Folder toolbar -->
+		<Toolbar Grid.Row="1" Grid.Col="1">
+			<Button Icon="Add">
+				<Button.DropDown>
+					<DropDownMenu>
+						<!--Додаємо розділ верхньго рівня. Parent = null -->
+						<MenuItem Icon="Plus" Content="Додати розділ" 
+								Command="{BindCmd Execute, CommandName=createFolder, Argument={Bind Folders.$selected}}"/>
+						<MenuItem Icon="Plus" Content="Додати підрозділ" 
+							Command="{BindCmd Execute, CommandName=createSubFolder, Argument={Bind Folders.$selected}}"/>
+					</DropDownMenu>
+				</Button.DropDown>
+			</Button>
+			<Button Icon="Edit" 
+						Command="{BindCmd Dialog, Action=EditSelected, Argument={Bind Folders}, Url={StaticResource EditFolderUrl}}" />
+			<Button Icon="Delete" Command="{BindCmd Execute, 
+				CommandName=deleteFolder, Argument={Bind Folders.$selected}}"/>
 			<Separator />
-			<TextBox Label="@[Search]" Value="{Bind Parent.Filter.Fragment}"/>
-			<Separator />
-			<Button Command="{BindCmd Reload}" Content="@[Reload]" Icon="Reload"/>
+			<Button Icon="Reload" Command="{BindCmd Reload}"/>
 		</Toolbar>
-	</Page.Toolbar>
-	<DataGrid ItemsSource="{Bind Parent.ItemsSource}" GridLines="Horizontal" FixedHeader="True" Sort="True">
-		<DataGridColumn Header="Id" Content="{Bind Id}" Fit="True" Align="Right" Wrap="NoWrap"/>
-		<DataGridColumn Header="@[Name]" Content="{Bind Name}" />
-		<DataGridColumn Header="@[FullName]" Content="{Bind FullName}" />
-		<DataGridColumn Header="@[Code]" Content="{Bind Code}" Fit="True" Align="Right" Wrap="NoWrap"/>
-		<DataGridColumn Header="@[Phone]" Fit="True" Wrap="NoWrap" SortProperty="Phone">
-			<Span Content="{Bind Phone, Mask='+38 (0##) ###-##-##'}" />
-		</DataGridColumn>
-		<DataGridColumn Header="@[EMail]" Content="{Bind EMail}" Fit="True" Wrap="NoWrap"/>
-		<DataGridColumn Header="@[Memo]" Content="{Bind Memo}" />
-		<DataGridColumn Fit="True">
-			<CommandBar Visibility="Hover">
-				<Button Icon="Edit" Command="{BindCmd Dialog, Action=Edit, Url='/catalog/agent/edit', Argument={Bind}}"/>
-				<Button Icon="Delete" Command="{BindCmd DbRemove, Argument={Bind}, Confirm='@[AreYouSure]'}"/>
-			</CommandBar>
-		</DataGridColumn>
-	</DataGrid>
-	<Page.Pager>
-		<Pager Source="{Bind Parent.Pager}"/>
-	</Page.Pager>
+		<TreeView Grid.Row="2" Grid.Col="1" Grid.VAlign="Stretch"
+			AutoSelect="FirstItem" ExpandFirstItem="True" Indent="True"
+					ItemsSource="{Bind Folders}" FolderSelect="True"
+					DoubleClick="{BindCmd Dialog, Action=EditSelected, Argument={Bind Folders}, Url={StaticResource EditFolderUrl}}">
+			<TreeViewItem ItemsSource="{Bind SubItems}" Icon="{Bind Icon}"
+						Label="{Bind Name}" IsGroup="{Bind HasSubItems}" Show="{Bind $IsVisible}"/>
+			<TreeView.ContextMenu>
+				<DropDownMenu>
+					<MenuItem Icon="Edit" Content="Edit" Command="{BindCmd Dialog, Action=EditSelected, Argument={Bind Folders}, Url={StaticResource EditFolderUrl}}"/>
+					<MenuItem Icon="Delete" Content="Delete" Command="{BindCmd Execute, 
+						CommandName=deleteFolder, Argument={Bind Folders.$selected}}"/>
+				</DropDownMenu>
+			</TreeView.ContextMenu>
+		</TreeView>
+		<GridDivider Grid.Col="2" Grid.RowSpan="2"/>
+		<CollectionView Grid.Row="1" Grid.Col="3" Grid.RowSpan="2" 
+						RunAt="Server" ItemsSource="{Bind Folders.Selected(Children)}">
+			<CollectionView.Filter>
+				<FilterDescription>
+					<FilterItem Property="Fragment" DataType="String"/>
+				</FilterDescription>
+			</CollectionView.Filter>
+			<Grid Columns="1*" Rows="Auto,1*,Auto" Height="100%" Padding="0" Gap="5">
+				<Toolbar Grid.Row="1">
+					<!--Здесь вполне можно обойтись стандартными командами -->
+					<Button Icon="Add" Content="@[Create]" Tip="Створити контрагента" 
+						Command="{BindCmd Dialog, Action=Append, Url={StaticResource EditItemUrl}, Argument={Bind Folders.Selected(Children)}, Data={Bind Root.$ParentFolderData}}" />
+					<Button Icon="Edit" Command="{BindCmd Execute, CommandName=editItem, Argument={Bind Folders.Selected(Children)}}" />
+					<Button Icon="Delete" Command="{BindCmd Execute, CommandName=deleteItem, Argument={Bind Folders.Selected(Children)}}"/>
+					<Separator />
+					<TextBox Label="Пошук:" Value="{Bind Root.$Filter}" Placeholder="фрагмент назви, коду, примітки" Width="25rem">
+						<TextBox.AddOns>
+							<Hyperlink Icon="Search" />
+							<Hyperlink Icon="Clear" Command="{BindCmd Execute, CommandName=clearFilter}"/>
+						</TextBox.AddOns>
+					</TextBox>
+					<Separator />
+					<Button Icon="Reload" 
+							Command="{BindCmd Reload, Argument={Bind Folders.Selected(Children)}}" Tip="Оновити"/>
+				</Toolbar>
+				<DataGrid Grid.Row="2" ItemsSource="{Bind Parent.ItemsSource}" Style="Light"
+							Sort="True" FixedHeader="True" GridLines="Horizontal"
+							DoubleClick="{BindCmd Dialog, Action=EditSelected, Url={StaticResource EditItemUrl}, Argument={Bind Folders.Selected(Children)}}">
+					<DataGrid.ContextMenu>
+						<DropDownMenu>
+							<MenuItem Icon="Edit" Content="Edit" Command="{BindCmd Execute, CommandName=editItem, Argument={Bind Folders.Selected(Children)}}" />
+							<MenuItem Icon="Delete" Content="Delete" Command="{BindCmd Execute, CommandName=deleteItem, Argument={Bind Folders.Selected(Children)}}"/>
+						</DropDownMenu>
+					</DataGrid.ContextMenu>
+					<DataGridColumn Header="Код" Content="{Bind Id}" Role="Id"/>
+					<DataGridColumn Header="Назва" Content="{Bind Name}"/>
+					<DataGridColumn Header="Код ЄДРПОУ" Content="{Bind Code}" Role="Id"/>
+					<DataGridColumn Header="Папка" Sort="False">
+						<Group>
+							<Label Content="{Bind ParentFolder.Name}" If="{Bind !Root.$IsSeachFolder}"/>
+							<Hyperlink Content="{Bind ParentFolder.Name}" If="{Bind Root.$IsSeachFolder}"
+								Command="{BindCmd Execute, CommandName=gotoFolder, Argument={Bind}}"/>
+						</Group>
+					</DataGridColumn>
+					<DataGridColumn Header="Примітка" Content="{Bind Memo}"/>
+					<DataGridColumn Fit="True">
+						<CommandBar Visibility="Hover">
+							<Button Icon="Edit" 
+									Command="{BindCmd Execute, CommandName=editItem, Argument={Bind $parent}}"/>
+							<Button Icon="Delete" Command="{BindCmd Execute, CommandName=deleteItem, Argument={Bind $parent}}"/>
+						</CommandBar>
+					</DataGridColumn>
+				</DataGrid>
+				<Pager Grid.Row="3" Source="{Bind Parent.Pager}"/>
+			</Grid>
+		</CollectionView>
+	</Grid>
 </Page>
