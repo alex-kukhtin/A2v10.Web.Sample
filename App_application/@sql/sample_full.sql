@@ -1,6 +1,6 @@
 ﻿/*
 version: 10.0.0021
-generated: 09.09.2021 10:14:10
+generated: 06.07.2021 10:38:05
 */
 
 set nocount on;
@@ -74,6 +74,8 @@ begin
 			constraint FK_Agents_Parent_Agents foreign key references a2v10sample.Agents(Id),
 		[Code] nvarchar(32) null,
 		[Name] nvarchar(255) null,
+		[EMail] nvarchar(32) null,
+		[Phone] nvarchar(32) null,
 		[Memo] nvarchar(255) null,
 		DateCreated datetime not null constraint DF_Agents_DateCreated default(getdate()),
 		UserCreated bigint not null

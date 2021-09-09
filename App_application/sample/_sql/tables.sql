@@ -37,6 +37,8 @@ begin
 			constraint FK_Agents_Parent_Agents foreign key references a2v10sample.Agents(Id),
 		[Code] nvarchar(32) null,
 		[Name] nvarchar(255) null,
+		[EMail] nvarchar(32) null,
+		[Phone] nvarchar(32) null,
 		[Memo] nvarchar(255) null,
 		DateCreated datetime not null constraint DF_Agents_DateCreated default(getdate()),
 		UserCreated bigint not null
