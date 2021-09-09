@@ -24,3 +24,5 @@
 @AreYouSure=Ви впевнені?
 @Modified=Змінено
 @Images=Зображення
+@Import=Імпортувати
+@File.Sample=Зразок файлу

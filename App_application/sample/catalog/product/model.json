@@ -16,6 +16,16 @@
 		"browse": {
 			"index": true,
 			"view": "browse.dialog"
+		},
+		"import": {
+			"model": "",
+			"view": "import.dialog"
+		}
+	},
+	"files": {
+		"import": {
+			"parse": "xlsx",
+			"model": "Product.Import"
 		}
 	}
 }

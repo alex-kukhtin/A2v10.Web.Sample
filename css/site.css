@@ -20,7 +20,7 @@
   font-family: 'A2v10';
   font-display: fallback;
   src: url('/css/fonts/A2v10.eot');
-  src: url('/css/fonts/A2v10.eot?#iefix') format('eot'), url('/css/fonts/A2v10.woff?v=7712') format('woff'), url('/css/fonts/A2v10.ttf?v=7674') format('truetype'), url('/css/fonts/A2v10.svg#A2v10') format('svg');
+  src: url('/css/fonts/A2v10.eot?#iefix') format('eot'), url('/css/fonts/A2v10.woff?v=7800') format('woff'), url('/css/fonts/A2v10.ttf?v=7674') format('truetype'), url('/css/fonts/A2v10.svg#A2v10') format('svg');
   font-weight: normal;
   font-style: normal;
 }
@@ -326,6 +326,9 @@
 }
 .ico-devices:before {
   content: "\e958";
+}
+.ico-ellipsis-bottom:before {
+  content: "\e9b3";
 }
 .ico-ellipsis:before {
   content: "\e9b4";
@@ -2462,7 +2465,7 @@ pre.a2-code {
 .control-group.disabled .input-group {
   background-color: #fafafa;
 }
-.control-group.disabled a {
+.control-group.disabled a:not(.rendershow) {
   pointer-events: none;
   opacity: 0.5;
 }
@@ -2967,10 +2970,26 @@ pre.a2-code {
 }
 .period-picker .current-period {
   font-weight: 500;
-  color: #555;
+  border-bottom: 1px dotted currentColor;
 }
 .period-picker .current-period.processing {
   animation: blink 0.5s infinite alternate ease-in-out;
+}
+.period-picker .custom-period {
+  display: inline-flex;
+  align-items: baseline;
+  padding-right: 0.8em;
+}
+.period-picker .custom-period span {
+  padding: 0 0.3em;
+}
+.period-picker .custom-period input {
+  padding: 0.3em;
+  border: 1px solid #ddd;
+  text-align: center;
+}
+.period-picker .custom-period .focus input {
+  border-color: #208cf8;
 }
 .period-picker .period-footer {
   display: flex;
@@ -4527,7 +4546,9 @@ ul.news-list > li {
 .modal-footer .btn {
   min-width: 6rem;
 }
-.modal-footer .btn + .btn {
+.modal-footer .btn + .btn,
+.modal-footer .btn + .dropdown,
+.modal-footer .dropdown + .btn {
   margin-left: 0.75rem;
 }
 .modal-footer .btn-help {
@@ -6918,7 +6939,7 @@ table > colgroup col.blue {
 }
 .debug-panel {
   position: absolute;
-  top: 40px;
+  top: 0;
   bottom: 1.8rem;
   right: 0;
   z-index: 110;
