@@ -67,7 +67,7 @@ create or alter procedure a2v10sample.[Document.Update]
 as
 begin
 	set nocount on;
-	set transaction isolation level serializable;
+	set transaction isolation level read committed;
 	set xact_abort on;
 
 	declare @RetId bigint;
@@ -90,7 +90,6 @@ begin
 		$action op,
 		inserted.Id id
 	into @output(op, id);
-	select top(1) @RetId = id from @output;
 
 	select top(1) @RetId = id from @output;
 
@@ -110,7 +109,7 @@ begin
 		values (@RetId, RowNumber, Qty, Price, [Sum], Product, Memo)
 	when not matched by source and target.Document = @RetId then delete;
 
-	execute a2v10sample.[Document.Load] @UserId, @RetId;
+	exec a2v10sample.[Document.Load] @UserId, @RetId;
 end
 go
 ------------------------------------------------
@@ -121,6 +120,8 @@ create or alter procedure a2v10sample.[Document.Delete]
 as
 begin
 	set nocount on;
+	set transaction isolation level read committed;
+
 	begin tran
 	delete from a2v10sample.DocDetails where Document = @Id;
 	delete from a2v10sample.Documents where Id=@Id;
