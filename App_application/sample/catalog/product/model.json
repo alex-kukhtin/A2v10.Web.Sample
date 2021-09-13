@@ -5,6 +5,7 @@
 	"actions": {
 		"index": {
 			"index": true,
+			"template": "index.template",
 			"view": "index.view"
 		}
 	},
@@ -19,11 +20,13 @@
 		},
 		"import": {
 			"model": "",
+			"template": "import.template",
 			"view": "import.dialog"
 		}
 	},
 	"files": {
 		"import": {
+			"type": "parse",
 			"parse": "xlsx",
 			"model": "Product.Import"
 		}

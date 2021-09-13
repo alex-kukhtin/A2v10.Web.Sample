@@ -1,12 +1,23 @@
 ﻿<Dialog xmlns="clr-namespace:A2v10.Xaml;assembly=A2v10.Xaml" 
 		Title="@[Import]" Width="30rem" Padding="1rem">
 	<Dialog.Buttons>
-		<Button Content="@[Cancel]" Command="{BindCmd Close}"/>
+		<Button Content="@[Close]" Command="{BindCmd Close}"/>
 	</Dialog.Buttons>
-	<!--
+	<Block If="{Bind Root.Done}">
+		<Text>Додано:
+			<Span Content="{Bind Root.Inserted}" Bold="True"/>
+			<Break />
+			Оновлено:
+			<Span Content="{Bind Root.Updated}" Bold="True"/>
+		</Text>
+	</Block>
+	<Block If="{Bind !Root.Done}">
+		<!--
 		Some mime types:
 		https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types
 	-->
-	<UploadFile Url="/catalog/product/import" Delegate="uploadFile" Accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"/>
-	<Hyperlink Content="@[File.Sample]" Command="{BindCmd Command=Download, Url=/sample.xlsx}"/>
+		<UploadFile Url="/catalog/product/import" Delegate="uploadFile" Accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"/>
+		<Hyperlink Content="@[File.Sample]" Margin="1rem,0" Block="True"
+				Command="{BindCmd Command=Download, Url='/entity_import_sample.xlsx'}"/>
+	</Block>
 </Dialog>

@@ -11,6 +11,7 @@
 			"sample/_sql/ui.sql",
 			"sample/catalog/agent/model.sql",
 			"sample/catalog/product/model.sql",
+			"sample/catalog/product/import.sql",
 			"sample/document/model.sql"
 		]
 	}

@@ -1,6 +1,6 @@
 ﻿/*
 version: 10.0.0021
-generated: 06.07.2021 10:38:05
+generated: 13.09.2021 10:52:56
 */
 
 set nocount on;
@@ -928,6 +928,36 @@ end
 go
 
 
+
+drop procedure if exists a2v10sample.[Product.Import.Update];
+go
+drop type if exists a2v10sample.[Product.Import.TableType]
+go
+------------------------------------------------
+create type a2v10sample.[Product.Import.TableType] as table
+(
+	RowNumber int,
+	[���] nvarchar(255),
+	[������������] nvarchar(255),
+	[�������] nvarchar(255),
+	[�����-���] nvarchar(255),
+	[����������] nvarchar(255)
+);
+go
+------------------------------------------------
+create or alter procedure a2v10sample.[Product.Import.Update]
+@UserId bigint,
+@Rows a2v10sample.[Product.Import.TableType] readonly
+as
+begin
+	set nocount on;
+	set transaction isolation level read uncommitted;
+	declare @xml nvarchar(max);
+	set @xml = (select * from @Rows for xml auto);
+	throw 60000, @xml, 0;
+	select [Result!TResult!Object] = null
+end
+go
 
 ------------------------------------------------
 create or alter procedure a2v10sample.[Document.Index]
