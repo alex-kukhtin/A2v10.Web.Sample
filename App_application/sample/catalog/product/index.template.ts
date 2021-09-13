@@ -1,12 +1,10 @@
 ﻿
 const template: Template = {
 	events: {
-		'$product.import.done': productImportDone
+		'$product.import.done': function(this: IRoot) {
+			this.$ctrl.$reload();
+		}
 	}
 }
 
 export default template;
-
-function productImportDone(this: IRoot) {
-	this.$ctrl.$reload();
-}

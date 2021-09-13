@@ -1,6 +1,6 @@
 ﻿/*
 version: 10.0.0021
-generated: 13.09.2021 10:52:56
+generated: 13.09.2021 13:33:48
 */
 
 set nocount on;
@@ -945,6 +945,17 @@ create type a2v10sample.[Product.Import.TableType] as table
 );
 go
 ------------------------------------------------
+create or alter procedure a2v10sample.[Product.Import.Metadata]
+as
+begin
+	set nocount on;
+	set transaction isolation level read uncommitted;
+
+	declare @Rows a2v10sample.[Product.Import.TableType];
+	select [Rows!Rows!Metadata] = null, * from @Rows;
+end
+go
+------------------------------------------------
 create or alter procedure a2v10sample.[Product.Import.Update]
 @UserId bigint,
 @Rows a2v10sample.[Product.Import.TableType] readonly
@@ -952,9 +963,19 @@ as
 begin
 	set nocount on;
 	set transaction isolation level read uncommitted;
-	declare @xml nvarchar(max);
-	set @xml = (select * from @Rows for xml auto);
-	throw 60000, @xml, 0;
+
+	merge a2v10sample.Products as t
+	using @Rows as s
+	on t.ExternalCode = s.[���]
+	when matched then update set
+		[Name] = s.[������������],
+		[Article] = s.[�������]
+	when not matched by target then insert
+		(ExternalCode, [Name], [Article], [BarCode], [Memo]) values
+		(s.[���], s.[������������], [�����-���], [����������])
+	output inserted.[ACTION] into @out
+
+
 	select [Result!TResult!Object] = null
 end
 go
