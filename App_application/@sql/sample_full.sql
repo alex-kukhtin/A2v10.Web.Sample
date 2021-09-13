@@ -1,6 +1,6 @@
 ﻿/*
 version: 10.0.0021
-generated: 13.09.2021 16:11:41
+generated: 13.09.2021 16:54:16
 */
 
 set nocount on;
@@ -108,9 +108,18 @@ create table a2v10sample.Products
 	Memo nvarchar(255) null,
 	Picture bigint null
 		constraint FK_Products_Picture_Images foreign key references a2v10sample.Images(Id),
-	DateCreated datetime not null constraint DF_Products_DateCreated default(getdate())
+	DateCreated datetime not null constraint DF_Products_DateCreated default(getdate()),
+	ExternalCode nvarchar(255)
 );
 end
+go
+------------------------------------------------
+if not exists(select * from INFORMATION_SCHEMA.COLUMNS where TABLE_SCHEMA=N'a2v10sample' and TABLE_NAME=N'Products' and COLUMN_NAME=N'ExternalCode')
+	alter table a2v10sample.Products add ExternalCode nvarchar(255) null
+go
+------------------------------------------------
+if not exists (select * from sys.indexes where object_id = object_id(N'a2v10sample.Products') and name = N'IX_Products_ExternalCode')
+	create index IX_Products_ExternalCode on a2v10sample.Products ([ExternalCode]) include (Id);
 go
 ------------------------------------------------
 if not exists(select * from INFORMATION_SCHEMA.SEQUENCES where SEQUENCE_SCHEMA=N'a2v10sample' and SEQUENCE_NAME=N'SQ_Documents')
@@ -963,20 +972,23 @@ as
 begin
 	set nocount on;
 	set transaction isolation level read uncommitted;
-
+	declare @outtable table([action] nvarchar(10));
 	merge a2v10sample.Products as t
 	using @Rows as s
 	on t.ExternalCode = s.[���]
 	when matched then update set
 		[Name] = s.[������������],
-		[Article] = s.[�������]
+		[Article] = s.[�������],
+		[BarCode] = s.[�����-���],
+		[Memo] = s.[����������]
 	when not matched by target then insert
 		(ExternalCode, [Name], [Article], [BarCode], [Memo]) values
-		(s.[���], s.[������������], [�����-���], [����������])
-	output inserted.[ACTION] into @out
+		(s.[���], s.[������������], [�������], [�����-���], [����������])
+	output $action into @outtable([action]);
 
-
-	select [Result!TResult!Object] = null
+	select [Result!TResult!Object] = null,
+		Inserted = (select count(*) from @outtable where [action] = N'INSERT'),
+		Updated = (select count(*) from @outtable where [action] = N'UPDATE');
 end
 go
 

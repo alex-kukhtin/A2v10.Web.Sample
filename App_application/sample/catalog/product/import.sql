@@ -32,19 +32,22 @@ as
 begin
 	set nocount on;
 	set transaction isolation level read uncommitted;
-
+	declare @outtable table([action] nvarchar(10));
 	merge a2v10sample.Products as t
 	using @Rows as s
 	on t.ExternalCode = s.[Код]
 	when matched then update set
 		[Name] = s.[Наименование],
-		[Article] = s.[Артикул]
+		[Article] = s.[Артикул],
+		[BarCode] = s.[Штрих-код],
+		[Memo] = s.[Примечание]
 	when not matched by target then insert
 		(ExternalCode, [Name], [Article], [BarCode], [Memo]) values
-		(s.[Код], s.[Наименование], [Штрих-код], [Примечание])
-	output inserted.[ACTION] into @out
+		(s.[Код], s.[Наименование], [Артикул], [Штрих-код], [Примечание])
+	output $action into @outtable([action]);
 
-
-	select [Result!TResult!Object] = null
+	select [Result!TResult!Object] = null,
+		Inserted = (select count(*) from @outtable where [action] = N'INSERT'),
+		Updated = (select count(*) from @outtable where [action] = N'UPDATE');
 end
 go

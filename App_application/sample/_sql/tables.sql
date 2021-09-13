@@ -71,9 +71,18 @@ create table a2v10sample.Products
 	Memo nvarchar(255) null,
 	Picture bigint null
 		constraint FK_Products_Picture_Images foreign key references a2v10sample.Images(Id),
-	DateCreated datetime not null constraint DF_Products_DateCreated default(getdate())
+	DateCreated datetime not null constraint DF_Products_DateCreated default(getdate()),
+	ExternalCode nvarchar(255)
 );
 end
+go
+------------------------------------------------
+if not exists(select * from INFORMATION_SCHEMA.COLUMNS where TABLE_SCHEMA=N'a2v10sample' and TABLE_NAME=N'Products' and COLUMN_NAME=N'ExternalCode')
+	alter table a2v10sample.Products add ExternalCode nvarchar(255) null
+go
+------------------------------------------------
+if not exists (select * from sys.indexes where object_id = object_id(N'a2v10sample.Products') and name = N'IX_Products_ExternalCode')
+	create index IX_Products_ExternalCode on a2v10sample.Products ([ExternalCode]) include (Id);
 go
 ------------------------------------------------
 if not exists(select * from INFORMATION_SCHEMA.SEQUENCES where SEQUENCE_SCHEMA=N'a2v10sample' and SEQUENCE_NAME=N'SQ_Documents')
