@@ -1,6 +1,6 @@
 ﻿/*
 version: 10.0.0021
-generated: 13.09.2021 16:54:16
+generated: 15.09.2021 15:20:07
 */
 
 set nocount on;
@@ -946,11 +946,11 @@ go
 create type a2v10sample.[Product.Import.TableType] as table
 (
 	RowNumber int,
-	[���] nvarchar(255),
-	[������������] nvarchar(255),
-	[�������] nvarchar(255),
-	[�����-���] nvarchar(255),
-	[����������] nvarchar(255)
+	[Код] nvarchar(255),
+	[Наименование] nvarchar(255),
+	[Артикул] nvarchar(255),
+	[Штрих-код] nvarchar(255),
+	[Примечание] nvarchar(255)
 );
 go
 ------------------------------------------------
@@ -975,15 +975,15 @@ begin
 	declare @outtable table([action] nvarchar(10));
 	merge a2v10sample.Products as t
 	using @Rows as s
-	on t.ExternalCode = s.[���]
+	on t.ExternalCode = s.[Код]
 	when matched then update set
-		[Name] = s.[������������],
-		[Article] = s.[�������],
-		[BarCode] = s.[�����-���],
-		[Memo] = s.[����������]
+		[Name] = s.[Наименование],
+		[Article] = s.[Артикул],
+		[BarCode] = s.[Штрих-код],
+		[Memo] = s.[Примечание]
 	when not matched by target then insert
 		(ExternalCode, [Name], [Article], [BarCode], [Memo]) values
-		(s.[���], s.[������������], [�������], [�����-���], [����������])
+		(s.[Код], s.[Наименование], [Артикул], [Штрих-код], [Примечание])
 	output $action into @outtable([action]);
 
 	select [Result!TResult!Object] = null,

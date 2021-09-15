@@ -1,4 +1,4 @@
-drop procedure if exists a2v10sample.[Product.Import.Update];
+п»їdrop procedure if exists a2v10sample.[Product.Import.Update];
 go
 drop type if exists a2v10sample.[Product.Import.TableType]
 go
@@ -6,11 +6,11 @@ go
 create type a2v10sample.[Product.Import.TableType] as table
 (
 	RowNumber int,
-	[Код] nvarchar(255),
-	[Наименование] nvarchar(255),
-	[Артикул] nvarchar(255),
-	[Штрих-код] nvarchar(255),
-	[Примечание] nvarchar(255)
+	[РљРѕРґ] nvarchar(255),
+	[РќР°РёРјРµРЅРѕРІР°РЅРёРµ] nvarchar(255),
+	[РђСЂС‚РёРєСѓР»] nvarchar(255),
+	[РЁС‚СЂРёС…-РєРѕРґ] nvarchar(255),
+	[РџСЂРёРјРµС‡Р°РЅРёРµ] nvarchar(255)
 );
 go
 ------------------------------------------------
@@ -35,15 +35,15 @@ begin
 	declare @outtable table([action] nvarchar(10));
 	merge a2v10sample.Products as t
 	using @Rows as s
-	on t.ExternalCode = s.[Код]
+	on t.ExternalCode = s.[РљРѕРґ]
 	when matched then update set
-		[Name] = s.[Наименование],
-		[Article] = s.[Артикул],
-		[BarCode] = s.[Штрих-код],
-		[Memo] = s.[Примечание]
+		[Name] = s.[РќР°РёРјРµРЅРѕРІР°РЅРёРµ],
+		[Article] = s.[РђСЂС‚РёРєСѓР»],
+		[BarCode] = s.[РЁС‚СЂРёС…-РєРѕРґ],
+		[Memo] = s.[РџСЂРёРјРµС‡Р°РЅРёРµ]
 	when not matched by target then insert
 		(ExternalCode, [Name], [Article], [BarCode], [Memo]) values
-		(s.[Код], s.[Наименование], [Артикул], [Штрих-код], [Примечание])
+		(s.[РљРѕРґ], s.[РќР°РёРјРµРЅРѕРІР°РЅРёРµ], [РђСЂС‚РёРєСѓР»], [РЁС‚СЂРёС…-РєРѕРґ], [РџСЂРёРјРµС‡Р°РЅРёРµ])
 	output $action into @outtable([action]);
 
 	select [Result!TResult!Object] = null,
