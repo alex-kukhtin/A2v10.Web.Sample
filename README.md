@@ -1,4 +1,4 @@
-# A2v10.Web.Sample
+### A2v10.Web.Sample (.Net Framework)
 
 To run this sample:
 
@@ -11,3 +11,7 @@ To run this sample:
 7. Build solution
 8. Run (without debugging - Ctrl + F5)
 9. Login: admin@admin.com, Password: Admin
+
+See also:
+
+.NET 5.0 version: [A2v10.Core.Sample](https://github.com/alex-kukhtin/A2v10.Core.Sample).
