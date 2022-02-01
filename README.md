@@ -14,4 +14,4 @@ To run this sample:
 
 See also:
 
-.NET 5.0 version: [A2v10.Core.Sample](https://github.com/alex-kukhtin/A2v10.Core.Sample).
+.NET 6 version: [A2v10.Core.Sample](https://github.com/alex-kukhtin/A2v10.Core.Sample).
