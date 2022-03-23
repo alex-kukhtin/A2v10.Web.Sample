@@ -11508,7 +11508,7 @@ Vue.directive('resize', {
 
 // Copyright © 2015-2022 Alex Kukhtin. All rights reserved.
 
-/*20220110-7819*/
+/*20220320-7828*/
 // controllers/base.js
 
 (function () {
@@ -11552,6 +11552,12 @@ Vue.directive('resize', {
 			}
 		}
 		return ra.length ? ra : null;
+	}
+
+	function treeNormalPath(path) {
+		if (!path) return;
+		path = '' + path;
+		return [... new Set(path.split('.'))].join('.');
 	}
 
 	function isPermissionsDisabled(opts, arg) {
@@ -12684,6 +12690,8 @@ Vue.directive('resize', {
 							if (data.$ModelInfo)
 								modelInfo.reconcile(data.$ModelInfo[propName]);
 							arr._root_._setModelInfo_(arr, data);
+							let eventName = treeNormalPath(arr._path_) + '.load';
+							self.$data.$emit(eventName, arr);
 						}
 						resolve(arr);
 					}).catch(function (msg) {
@@ -13031,9 +13039,9 @@ Vue.directive('resize', {
 		isSeparatePage
 	};
 })();	
-// Copyright © 2020-2021 Alex Kukhtin. All rights reserved.
+// Copyright © 2020-2022 Alex Kukhtin. All rights reserved.
 
-/*20210428-7771*/
+/*20220320-7830*/
 /* controllers/navbar.js */
 
 (function () {
@@ -13138,7 +13146,7 @@ Vue.directive('resize', {
 	<h2 v-text=title></h2>
 </div>
 <ul class=menu-navbar-list>
-	<li v-for="(item, index) in menu" :key=index>
+	<li v-for="(item, index) in menu" :key=index :class='item.ClassName' >
 		<a class="menu-navbar-link" :href="itemHref(item)" @click.prevent="navigate(item)" :class="{active : isActive(item)}">
 			<i class="ico" :class=icoClass(item)></i>
 			<span v-text="item.Name"></span>

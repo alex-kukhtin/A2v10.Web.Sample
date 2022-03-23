@@ -3,7 +3,7 @@ define(["require", "exports"], function (require, exports) {
     Object.defineProperty(exports, "__esModule", { value: true });
     const template = {
         validators: {
-            'Folder.Name': "notBlank"
+            'Folder.Name': "notBlank",
         },
         events: {
             'Model.load': modelLoad

@@ -5,7 +5,7 @@ import { TFolder, TParentFolder, TRoot } from 'folder.d';
 
 const template: Template = {
 	validators: {
-		'Folder.Name': StdValidator.notBlank
+		'Folder.Name': StdValidator.notBlank, 
 	},
 	events: {
 		'Model.load': modelLoad
