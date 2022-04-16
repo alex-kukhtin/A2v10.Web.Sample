@@ -1006,7 +1006,7 @@ begin
 
 	select [!TAgent!Map] = null, [Id!!Id] = a.Id, [Name], a.Memo, a.Phone, a.EMail
 	from a2v10sample.Agents a inner join a2v10sample.Documents d on d.Agent = a.Id
-	where d.Id in (select Agent from a2v10sample.Documents);
+	where a.Id in (select Agent from a2v10sample.Documents);
 
 end
 go
