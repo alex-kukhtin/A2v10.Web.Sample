@@ -2,8 +2,8 @@
 	<Page.CollectionView>
 		<CollectionView RunAt="ServerUrl" Filter="Fragment" ItemsSource="{Bind Products}"/>
 	</Page.CollectionView>
-	<Page.Toolbar>
-		<Toolbar>
+	<Grid Rows="Auto,1*,Auto" Height="100%">
+		<Toolbar Grid.Row="1">
 			<Button Command="{BindCmd Dialog, Action=Append, Argument={Bind Parent.ItemsSource}, Url='/catalog/product/edit'}" Icon="Plus" Content="@[Create]"/>
 			<Button Command="{BindCmd Dialog, Action=EditSelected, Argument={Bind Parent.ItemsSource}, Url='/catalog/product/edit'}" Icon="Edit" Content="@[Edit]"/>
 			<Button Command="{BindCmd Command=DbRemoveSelected, Argument={Bind Parent.ItemsSource}, Confirm='@[AreYouSure]'}" Icon="Delete" Content="@[Delete]"/>
@@ -13,21 +13,20 @@
 			<Button Icon="FileImport" Content="@[Import]" Command="{BindCmd Dialog, Action=Show, Url='/catalog/product/import'}" 
 				Toolbar.Align="Right"/>
 		</Toolbar>
-	</Page.Toolbar>
-	<DataGrid ItemsSource="{Bind Parent.ItemsSource}" GridLines="Horizontal" FixedHeader="True" Sort="True">
-		<DataGridColumn Header="Id" Content="{Bind Id}" Fit="True" Align="Right" Wrap="NoWrap"/>
-		<DataGridColumn Header="@[Name]" Content="{Bind Name}" />
-		<DataGridColumn Header="@[Article]" Content="{Bind Article}" />
-		<DataGridColumn Header="@[BarCode]" Content="{Bind BarCode}" Fit="True" Align="Right" Wrap="NoWrap"/>
-		<DataGridColumn Header="@[Memo]" Content="{Bind Memo}" />
-		<DataGridColumn Fit="True">
-			<CommandBar Visibility="Hover">
-				<Button Icon="Edit" Command="{BindCmd Dialog, Action=Edit, Url='/catalog/product/edit', Argument={Bind}}"/>
-				<Button Icon="Delete" Command="{BindCmd DbRemove, Argument={Bind}, Confirm='@[AreYouSure]'}"/>
-			</CommandBar>
-		</DataGridColumn>
-	</DataGrid>
-	<Page.Pager>
-		<Pager Source="{Bind Parent.Pager}"/>
-	</Page.Pager>
+		<DataGrid Grid.Row="2"
+			ItemsSource="{Bind Parent.ItemsSource}" GridLines="Horizontal" FixedHeader="True" Sort="True">
+			<DataGridColumn Header="Id" Content="{Bind Id}" Fit="True" Align="Right" Wrap="NoWrap"/>
+			<DataGridColumn Header="@[Name]" Content="{Bind Name}" />
+			<DataGridColumn Header="@[Article]" Content="{Bind Article}" />
+			<DataGridColumn Header="@[BarCode]" Content="{Bind BarCode}" Fit="True" Align="Right" Wrap="NoWrap"/>
+			<DataGridColumn Header="@[Memo]" Content="{Bind Memo}" />
+			<DataGridColumn Fit="True">
+				<CommandBar Visibility="Hover">
+					<Button Icon="Edit" Command="{BindCmd Dialog, Action=Edit, Url='/catalog/product/edit', Argument={Bind}}"/>
+					<Button Icon="Delete" Command="{BindCmd DbRemove, Argument={Bind}, Confirm='@[AreYouSure]'}"/>
+				</CommandBar>
+			</DataGridColumn>
+		</DataGrid>
+		<Pager Grid.Row="3" Source="{Bind Parent.Pager}"/>
+	</Grid>
 </Page>

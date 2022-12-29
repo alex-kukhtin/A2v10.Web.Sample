@@ -14,7 +14,8 @@
 			<Button Content="@[Close]" Icon="Close" Command="{BindCmd Close}" Toolbar.Align="Right"/>
 		</Toolbar>
 	</Page.Toolbar>
-	<Grid>
+	<Grid Height="100%" Rows="Auto,1*,Auto">
+		<Block>
 		<Header Grid.Row="1">@[Waybill]</Header>
 		<TextBox Label="@[No]" Value="{Bind Document.No}" Width="20rem"/>
 		<DatePicker Label="@[Date]" Value="{Bind Document.Date, DataType=Date}" Width="20rem"/>
@@ -26,7 +27,9 @@
 		<Toolbar Style="Transparent">
 			<Button Icon="Plus" Content="@[Row.Add]" Command="{BindCmd Append, Argument={Bind Document.Rows}}"/>
 		</Toolbar>
-		<Table ItemsSource="{Bind Document.Rows}" GridLines="Both">
+		</Block>
+		<Table ItemsSource="{Bind Document.Rows}" GridLines="Both"
+			   Grid.Row="2" StickyHeaders="True" Height="100%">
 			<Table.Columns>
 				<TableColumn Fit="True"/>
 				<TableColumn Fit="True"/>
@@ -72,6 +75,7 @@
 				</TableRow>
 			</Table.Footer>
 		</Table>
-		<TextBox Label="@[Memo]" Multiline="True" Rows="4" Value="{Bind Document.Memo}"/>
+		<TextBox Grid.Row="3"
+			Label="@[Memo]" Multiline="True" Rows="4" Value="{Bind Document.Memo}"/>
 	</Grid>
 </Page>

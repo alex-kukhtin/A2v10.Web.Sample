@@ -2,16 +2,16 @@
 	<Page.CollectionView>
 		<CollectionView RunAt="ServerUrl" ItemsSource="{Bind Documents}"/>
 	</Page.CollectionView>
-	<Page.Toolbar>
-		<Toolbar>
+	<Grid Rows="Auto,1*,Auto" Height="100%">
+		<Toolbar Grid.Row="1">
 			<Button Content="@[Create]" Icon="Plus" Command="{BindCmd Create, Url='/document/waybill/edit'}"/>
 			<Button Content="@[Open]" Icon="ArrowOpen" Command="{BindCmd Command=OpenSelected, Url='/document/waybill/edit', Argument={Bind Parent.ItemsSource}}"/>
 			<Button Content="@[Delete]" Icon="Delete" Command="{BindCmd Command=DbRemoveSelected, Argument={Bind Parent.ItemsSource}, Confirm='@[AreYouSure]'}"/>
 			<Separator />
 			<Button Content="@[Reload]" Icon="Reload" Command="{BindCmd Reload}"/>
 		</Toolbar>
-	</Page.Toolbar>
-	<DataGrid ItemsSource="{Bind Parent.ItemsSource}" GridLines="Horizontal" FixedHeader="True"
+		<DataGrid Grid.Row="2"
+			ItemsSource="{Bind Parent.ItemsSource}" GridLines="Horizontal" FixedHeader="True"
 			  DoubleClick="{BindCmd Open, Url='/document/waybill/edit', Argument={Bind Parent.ItemsSource.$selected}}">
 		<DataGridColumn Header="Id" Content="{Bind Id}" Fit="True" Wrap="NoWrap"/>
 		<DataGridColumn Header="@[Date]" Content="{Bind Date, DataType=Date}" Fit="True" Wrap="NoWrap"/>
@@ -26,7 +26,6 @@
 			</CommandBar>
 		</DataGridColumn>
 	</DataGrid>
-	<Page.Pager>
-		<Pager Source="{Bind Parent.Pager}"/>
-	</Page.Pager>
+		<Pager Grid.Row="3" Source="{Bind Parent.Pager}" />
+	</Grid>
 </Page>

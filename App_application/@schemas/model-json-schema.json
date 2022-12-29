@@ -1,6 +1,6 @@
 ﻿{
 	"$schema": "http://json-schema.org/draft-04/schema",
-	"$version": "10.0.7805",
+	"$version": "10.0.7891",
 	"title": "JSON Schema for model.json",
 	"type": "object",
 
@@ -30,67 +30,68 @@
 			"patternProperties": {
 				".+": {
 					"type": "object",
-					"properties": {
-						"index": { "type": "boolean" },
+				  "properties": {
+					"index": { "type": "boolean" },
+					"source": { "type": "string" },
+					"schema": { "type": "string" },
+					"model": { "type": "string" },
+					"view": { "type": "string" },
+					"viewMobile": { "type": "string" },
+					"template": { "type": "string" },
+					"checkTypes": { "type": "string" },
+					"processDbEvents": { "type": "boolean" },
+					"commandTimeout": { "type": "number" },
+					"indirect": { "type": "boolean" },
+					"target": { "type": "string" },
+					"targetId": { "type": "string" },
+					"skipDataStack": { "type": "boolean" },
+					"merge": {
+					  "type": "object",
+					  "properties": {
 						"source": { "type": "string" },
-						"schema": { "type": "string" },
 						"model": { "type": "string" },
-						"view": { "type": "string" },
-						"viewMobile": { "type": "string" },
-						"template": { "type": "string" },
-						"checkTypes": { "type": "string" },
-						"processDbEvents": { "type": "boolean" },
-						"commandTimeout": { "type": "number" },
-						"indirect": { "type": "boolean" },
-						"target": { "type": "string" },
-						"targetId": {"type": "string" },
-						"merge": {
-							"type": "object",
-							"properties": {
-								"source": { "type": "string" },
-								"model": { "type": "string" },
-								"schema": { "type": "string" },
-								"parameters": { "type": "object" }
-							},
-							"additionalProperties": false
-						},
-						"events": {
-							"type": "object",
-							"properties": {
-								"afterSave": {
-									"type": "object",
-									"properties": {
-										"source": { "type": "string" },
-										"schema": { "type": "string" },
-										"model": { "type": "string" }
-									}
-								}
-							}
-						},
-						"export": {
-							"type": "object",
-							"properties": {
-								"template": { "type": "string" },
-								"fileName": { "type": "string" },
-								"format": {
-									"type": "string",
-									"enum": [ "xlsx", "dbf", "csv" ]
-								},
-								"encoding": { "type": "string" }
-							},
-							"additionalProperties": false
-						},
-						"parameters": { "type": "object" },
-						"permissions": { "$ref": "#/definitions/permissions" },
-						"scripts": {
-							"type": "array",
-							"items": { "type": "string" }
-						},
-						"styles": {
-							"type": "array",
-							"items": {"type": "string"}
-						}
+						"schema": { "type": "string" },
+						"parameters": { "type": "object" }
+					  },
+					  "additionalProperties": false
 					},
+					"events": {
+					  "type": "object",
+					  "properties": {
+						"afterSave": {
+						  "type": "object",
+						  "properties": {
+							"source": { "type": "string" },
+							"schema": { "type": "string" },
+							"model": { "type": "string" }
+						  }
+						}
+					  }
+					},
+					"export": {
+					  "type": "object",
+					  "properties": {
+						"template": { "type": "string" },
+						"fileName": { "type": "string" },
+						"format": {
+						  "type": "string",
+						  "enum": [ "xlsx", "dbf", "csv" ]
+						},
+						"encoding": { "type": "string" }
+					  },
+					  "additionalProperties": false
+					},
+					"parameters": { "type": "object" },
+					"permissions": { "$ref": "#/definitions/permissions" },
+					"scripts": {
+					  "type": "array",
+					  "items": { "type": "string" }
+					},
+					"styles": {
+					  "type": "array",
+					  "items": { "type": "string" }
+					}
+				  },
 					"additionalProperties": false
 				}
 			}
@@ -230,9 +231,15 @@
 						"name": { "type": "string" },
 						"report": { "type": "string" },
 						"checkTypes": { "type": "string" },
+						"encoding": { "type": "string" },
+						"commandTimeout": { "type": "number" },
+						"xmlSchemas": {
+							"type": "array",
+							"items": { "type": "string" }
+						},
 						"type": {
 							"type": "string",
-							"enum": [ "stimulsoft", "xml", "json" ]
+							"enum": [ "stimulsoft", "xml", "json", "pdf" ]
 						},
 						"permissions": {
 							"$ref": "#/definitions/permissions"
@@ -252,11 +259,11 @@
 						"schema": { "type": "string" },
 						"type": {
 							"type": "string",
-							"enum": [ "parse", "clr", "sql", "azureBlob" ]
+							"enum": [ "parse", "clr", "sql", "azureBlob", "json" ]
 						},
 						"parse": {
 							"type": "string",
-							"enum": [ "excel", "xlsx", "csv", "dbf", "xml", "auto" ]
+							"enum": [ "excel", "xlsx", "csv", "dbf", "xml", "auto", "json" ]
 						},
 						"commandTimeout": { "type": "number" },
 						"async": { "type": "boolean" },
@@ -266,6 +273,8 @@
 						},
 						"locale": { "type": "string" },
 						"container": { "type": "string" },
+						"outputFileName": { "type": "string" },
+						"zip": {"type": "boolean" },
 						"azureSource": { "type": "string" },
 						"imageCompress": {
 							"type": "object",
