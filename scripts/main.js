@@ -6186,6 +6186,116 @@ Vue.component('validator-control', {
 	});
 })();
 
+// Copyright © 2019-2023 Oleksandr Kukhtin. All rights reserved.
+
+// 20230122-7916
+// components/colorpicker.js*/
+
+(function () {
+
+	const popup = require('std:popup');
+	const eventBus = require('std:eventBus');
+
+	const colorPickerTemplate =
+`<div class="color-picker" :class="cssClass()" :test-id="testId">
+	<label v-if="hasLabel"><span v-text="label"/><slot name="hint"/><slot name="link"></slot></label>
+	<div class="input-group">
+		<div v-focus tabindex="0" @click.stop.prevent="toggle"
+				@keydown="keydown" class="color-picker-wrapper">
+			<span class="tag-label" :class="cmbValue" v-text="text"/>
+			<span class="caret"/>
+		</div>
+		<validator :invalid="invalid" :errors="errors" :options="validatorOptions"></validator>
+		<div class="color-picker-pane" v-show="isOpen">
+			<div class="color-picker-list">
+				<span class="tag-label" :class="itm" @mousedown.prevent="hit(itm)"
+					v-for="(itm, ix) in items" :key="ix" v-text="text">
+				</span>
+			</div>
+		</div>
+	</div>
+	<slot name="popover"></slot>
+	<span class="descr" v-if="hasDescr" v-text="description"></span>
+</div>
+`;
+
+	const colors = "default|green|orange|cyan|red|purple|pink|gold|blue|salmon|seagreen|tan|magenta|lightgray|olive|teal";
+
+	const baseControl = component('control');
+
+	Vue.component('a2-color-picker', {
+		extends: baseControl,
+		props: {
+			item: {
+				type: Object, default() { return {}; }
+			},
+			prop: String,
+			text: String
+		},
+		data() {
+			return {
+				isOpen: false
+			};
+		},
+		template: colorPickerTemplate,
+		computed: {
+			cmbValue: {
+				get() {
+					return this.item[this.prop];
+				},
+				set(val) {
+					this.item[this.prop] = val;
+				}
+			},
+			items() { return colors.split('|'); }
+		},
+		methods: {
+			keydown(event) {
+				event.stopPropagation();
+				let items = this.items;
+				switch (event.which) {
+					case 40: // down
+						event.preventDefault();
+						var ix = items.indexOf(this.cmbValue);
+						if (ix < items.length - 1)
+							this.cmbValue = items[ix + 1];
+						else
+							this.cmbValue = items[0];
+						break;
+					case 38: // up
+						event.preventDefault();
+						var ix = items.indexOf(this.cmbValue);
+						if (ix > 0)
+							this.cmbValue = items[ix - 1];
+						else
+							this.cmbValue = items[items.length - 1];
+						break;
+				}
+			},
+			toggle() { 
+				if (!this.isOpen) {
+					eventBus.$emit('closeAllPopups');
+				}
+				this.isOpen = !this.isOpen;
+			},
+			hit(itm) {
+				this.item[this.prop] = itm;
+				this.isOpen = false;
+			},
+			__clickOutside() {
+				this.isOpen = false;
+			}
+		},
+		mounted() {
+			popup.registerPopup(this.$el);
+			this.query = this.valueText;
+			this.$el._close = this.__clickOutside;
+		},
+		beforeDestroy() {
+			popup.unregisterPopup(this.$el);
+		}
+	});
+})();
 // Copyright © 2015-2021 Alex Kukhtin. All rights reserved.
 
 // 20210729-7798
@@ -11423,9 +11533,9 @@ Vue.component('a2-panel', {
 	});
 })();
 
-// Copyright © 2022 Alex Kukhtin. All rights reserved.
+// Copyright © 2022-2023 Oleksandr Kukhtin. All rights reserved.
 
-// 20220917-7891
+// 20220917-7920
 // components/dashboard.js
 
 (function () {
@@ -11471,7 +11581,22 @@ Vue.component('a2-panel', {
 		<div class="widget-toolbar">
 			<slot name="toolbar"></slot>
 		</div>
-		<ul class="widget-list">
+		<ul class="widget-list-grouping" v-if="groupBy">
+			<li class="widget-group" v-for="(grp, ixg) in groupingList" :key="ixg"
+					:class="{collapsed: isGroupCollapsed(grp)}">
+				<div class="widget-group-title" @click.stop.prevent="toggleGroup(grp)">
+					<span v-text="grp.name"/>
+					<span class="ico collapse-handle"></span>
+				</div>
+				<ul class="widget-list">
+					<a2-dashboard-item v-for="(itm, ix) in grp.items" :key=ix :edit-mode="true"
+							:item=itm :col-span="itm.colSpan" :row-span="itm.rowSpan" :isnew=true>
+						<slot name="listitem" v-bind:item="itm"></slot>
+					</a2-dashboard-item>
+				</ul>
+			</li>
+		</ul>
+		<ul class="widget-list" v-else>
 			<a2-dashboard-item v-for="(itm, ix) in list" :key=ix :edit-mode="true"
 					:item=itm :col-span="itm.colSpan" :row-span="itm.rowSpan" :isnew=true>
 				<slot name="listitem" v-bind:item="itm"></slot>
@@ -11567,6 +11692,7 @@ Vue.component('a2-panel', {
 		props: {
 			items: Array,
 			list: Array,
+			groupBy: String,
 			editable: Boolean,
 			editMode: false,
 			cellSize: {
@@ -11578,12 +11704,30 @@ Vue.component('a2-panel', {
 				staticElems: [],
 				currentElem: null,
 				lastPhRow: 0,
-				lastPhCol: 0
+				lastPhCol: 0,
+				collapsedGroups: []
 			};
 		},
 		computed: {
 			hasItems() {
 				return this.items && this.items.length;
+			},
+			groupingList() {
+				if (!this.groupBy)
+					return [];
+				let el = [];
+				this.list.forEach(p => {
+					let g = p[this.groupBy];
+					let found = el.find(x => x.name === g);
+					if (found)
+						found.items.push(p);
+					else
+						el.push({
+							name: g,
+							items: [p]
+						});
+				});
+				return el;
 			},
 			rows() {
 				let rows = 0;
@@ -11744,6 +11888,18 @@ Vue.component('a2-panel', {
 					}
 					this.currentElem = null;
 				}
+			},
+			isGroupCollapsed(grp) {
+				return this.collapsedGroups.indexOf(grp.name) >= 0;
+			},
+			toggleGroup(grp) {
+				if (!this.isGroupCollapsed(grp))
+					this.collapsedGroups.push(grp.name);
+				else {
+					let ix = this.collapsedGroups.indexOf(grp.name);
+					if (ix >= 0)
+						this.collapsedGroups.splice(ix, 1);
+				}
 			}
 		},
 		watch: {
@@ -11756,6 +11912,247 @@ Vue.component('a2-panel', {
 		}
 	});
 })();
+// Copyright © 2019-2023 Oleksandr Kukhtin. All rights reserved.
+
+// 20230122-7918
+// components/tagscontrol.js*/
+
+(function () {
+	const template = `
+<div class="tags-control" :class="cssClass()" :test-id="testId">
+	<label v-if="hasLabel"><span v-text="label"/><slot name="hint"/><slot name="link"></slot></label>
+	<div class="input-group" :class="{focus: isOpen}" @click.stop.prevent="toggle">
+		<ul class="tags-items" v-if="hasItems">
+			<li v-for="(itm, ix) in value" :key="ix" class="tag-body tag-md-close" :class="tagColor(itm)">
+				<span v-text="tagName(itm)"/>
+				<button @click.stop.prevent="itm.$remove()" class="btn-close">×</button>
+			</li>
+		</ul>
+		<div class="tags-placeholder" v-else v-text="placeholder"></div>
+		<div class="tags-pane" v-if=isOpen>
+			<ul class="tags-pane-items">
+				<li v-for="(itm, ix) in actualItemsSource" :key="ix" class="tag-body tag-md" :class="tagColor(itm)">
+					<span v-text="tagName(itm)" 
+						@click.stop.prevent="addTag(itm)"/>
+				</li>
+			</ul>
+			<div class="tags-settings" v-if="!disabled">
+				<button class="btn-settings" v-text="settingsText" @click.stop.prevent=doSettings></button>
+			</div>
+		</div>
+	</div>
+	<slot name="popover"></slot>
+	<span class="descr" v-if="hasDescr" v-text="description"></span>
+</div>
+`;
+
+	const templateList = `
+<div class="tags-list" :test-id="testId">
+	<span v-for="(itm, ix) in itemsSource" :key="ix" class="tag-body tag-sm" :class="tagColor(itm)" v-text="tagName(itm)"/>
+</div>
+`;
+
+	const templateFilter = `
+<div class="tags-control" :class="cssClass()" :test-id="testId">
+	<label v-if="hasLabel"><span v-text="label"/><slot name="hint"/><slot name="link"></slot></label>
+	<div class="input-group" :class="{focus: isOpen}" @click.stop.prevent="toggle">
+		<ul class="tags-items" v-if="hasItems">
+			<li v-for="(itm, ix) in valueList" :key="ix" class="tag-body tag-md-close" :class="tagColor(itm)">
+				<span v-text="tagName(itm)"/>
+				<button @click.stop.prevent="removeTag(itm)" class="btn-close">×</button>
+			</li>
+		</ul>
+		<div class="tags-placeholder" v-else v-text="placeholder"></div>
+		<div class="tags-pane" v-if=isOpen>
+			<ul class="tags-pane-items">
+				<li v-for="(itm, ix) in actualItemsSource" :key="ix" class="tag-body tag-md" :class="tagColor(itm)">
+					<span v-text="tagName(itm)" 
+						@click.stop.prevent="addTag(itm)"/>
+				</li>
+			</ul>
+		</div>
+	</div>
+	<slot name="popover"></slot>
+	<span class="descr" v-if="hasDescr" v-text="description"></span>
+</div>
+`;
+
+	const baseControl = component('control');
+	const popup = require('std:popup');
+	const eventBus = require('std:eventBus');
+
+
+	Vue.component('a2-tags', {
+		extends: baseControl,
+		props: {
+			item: {
+				type: Object, default() { return {}; }
+			},
+			prop: String,
+			itemsSource: Array,
+			contentProp: { type: String, default: 'Name' },
+			colorProp: { type: String, default: 'Color' },
+			disabled: Boolean,
+			settingsText: { type: String, default: "Settings" },
+			placeholder: String,
+			settingsFunc: Function
+		},
+		data() {
+			return {
+				isOpen: false
+			};
+		},
+		template,
+		computed: {
+			value() {
+				return this.item[this.prop];
+			},
+			hasItems() {
+				return this.value.length > 0;
+			},
+			actualItemsSource() {
+				let val = this.value;
+				return this.itemsSource.filter(x => !val.some(ix => x.$id === ix.$id));
+			}
+		},
+		methods: {
+			tagName(itm) {
+				return itm[this.contentProp];
+			},
+			tagColor(itm) {
+				return itm[this.colorProp];
+			},
+			addTag(itm) {
+				if (this.disabled)
+					return;
+				let val = this.value;
+				if (val.some(x => x.$id === itm.$id))
+					return; // already added
+				this.item[this.prop].$append(itm);
+			},
+			toggle() {
+				if (this.disabled)
+					return;
+				if (!this.isOpen) {
+					eventBus.$emit('closeAllPopups');
+				}
+				this.isOpen = !this.isOpen;
+			},
+			doSettings() {
+				if (this.settingsFunc)
+					this.settingsFunc.call(this.item.$root, this.itemsSource);
+			},
+			__clickOutside() {
+				this.isOpen = false;
+			}
+		},
+		mounted() {
+			popup.registerPopup(this.$el);
+			this.$el._close = this.__clickOutside;
+		},
+		beforeDestroy() {
+			popup.unregisterPopup(this.$el);
+		}
+	});
+
+	Vue.component("a2-tags-list", {
+		template: templateList,
+		props: {
+			testId: String,
+			itemsSource: Array,
+			contentProp: { type: String, default: 'Name' },
+			colorProp: { type: String, default: 'Color' },
+		},
+		methods: {
+			tagName(itm) {
+				return itm[this.contentProp];
+			},
+			tagColor(itm) {
+				return itm[this.colorProp];
+			}
+		}
+	});
+
+	Vue.component('a2-tags-filter', {
+		extends: baseControl,
+		props: {
+			item: {
+				type: Object, default() { return {}; }
+			},
+			prop: String,
+			itemsSource: Array,
+			contentProp: { type: String, default: 'Name' },
+			colorProp: { type: String, default: 'Color' },
+			placeholder: String
+		},
+		data() {
+			return {
+				isOpen: false
+			};
+		},
+		template: templateFilter,
+		computed: {
+			value() {
+				return this.item[this.prop];
+			},
+			valueArray() {
+				let v = this.value;
+				return v ? v.split('-') : [];
+			},
+			valueList() {
+				var va = this.valueArray;
+				return this.itemsSource.filter(tag => va.indexOf('' + tag.$id) >= 0);
+			},
+			actualItemsSource() {
+				var va = this.valueArray;
+				return this.itemsSource.filter(tag => va.indexOf('' + tag.$id) < 0);
+			},
+			hasItems() {
+				return !!this.value;
+			}
+		},
+		methods: {
+			tagName(itm) {
+				return itm[this.contentProp];
+			},
+			tagColor(itm) {
+				return itm[this.colorProp];
+			},
+			addTag(itm) {
+				if (this.disabled)
+					return;
+				let va = this.valueArray;
+				if (va.indexOf('' + itm.$id) >= 0)
+					return; // already added
+				this.item[this.prop] = va.concat([itm.$id]).join('-');
+			},
+			removeTag(itm) {
+				let va = this.valueArray.filter(x => x != itm.$id);
+				this.item[this.prop] = va.join('-');
+			},
+			toggle() {
+				if (this.disabled)
+					return;
+				if (!this.isOpen) {
+					eventBus.$emit('closeAllPopups');
+				}
+				this.isOpen = !this.isOpen;
+			},
+			__clickOutside() {
+				this.isOpen = false;
+			}
+		},
+		mounted() {
+			popup.registerPopup(this.$el);
+			this.$el._close = this.__clickOutside;
+		},
+		beforeDestroy() {
+			popup.unregisterPopup(this.$el);
+		}
+	});
+})();
+
+
 // Copyright © 2015-2019 Alex Kukhtin. All rights reserved.
 
 /*20190308-7461*/
@@ -12777,7 +13174,7 @@ Vue.directive('resize', {
 				window.location = root + url;
 			},
 
-			async $upload(url, accept, data) {
+			async $upload(url, accept, data, opts) {
 				eventBus.$emit('closeAllPopups');
 				let root = window.$$rootUrl;
 				try {
@@ -12791,7 +13188,9 @@ Vue.directive('resize', {
 					return await httpTools.upload(uploadUrl, dat);
 				} catch (err) {
 					err = err || 'unknown error';
-					if (err.indexOf('UI:') === 0)
+					if (opts && opts.catchError)
+						throw err;
+					else if (err.indexOf('UI:') === 0)
 						this.$alert(err);
 					else
 						alert(err);
