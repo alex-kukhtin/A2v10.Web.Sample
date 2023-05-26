@@ -18,5 +18,14 @@
 				"Kind": "Waybill"
 			}
 		}
+	},
+	"dialogs": {
+		"editDialog": {
+			"template": "edit.template",
+			"view": "edit.dialog",
+			"parameters": {
+				"Kind": "Waybill"
+			}
+		}
 	}
 }

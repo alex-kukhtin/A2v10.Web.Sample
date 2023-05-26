@@ -1,0 +1,84 @@
+﻿<Dialog xmlns="clr-namespace:A2v10.Xaml;assembly=A2v10.Xaml"
+		Title="@[Waybill]" Width="70rem" Height="50rem">
+	<Dialog.Taskpad>
+		<Taskpad Width="20rem" Background="WhiteSmoke">
+			<PropertyGrid>
+				<PropertyGridItem Content="{Bind Document.Id}" Name="Id"/>
+				<PropertyGridItem Content="{Bind Document.DateModified, DataType=DateTime}" Name="@[Modified]"/>
+			</PropertyGrid>
+		</Taskpad>
+	</Dialog.Taskpad>
+	<Dialog.Buttons>
+		<Button Content="@[Save]" Style="Primary" Command="{BindCmd Save}"/>
+		<Button Content="@[Reload]" Command="{BindCmd Reload}"/>
+		<Button Content="@[Close]" Command="{BindCmd Close}" Toolbar.Align="Right"/>
+	</Dialog.Buttons>
+	<TabPanel FullPage="True">
+		<Tab Header="Text" Height="100%">
+			<Grid Rows="Auto,1*,Auto" Height="100%">
+				<Block>
+					<Header Grid.Row="1">@[Waybill]</Header>
+					<TextBox Label="@[No]" Value="{Bind Document.No}" Width="20rem"/>
+					<DatePicker Label="@[Date]" Value="{Bind Document.Date, DataType=Date}" Width="20rem"/>
+					<TextBox Value="{Bind Document.Agent.Name}" Label="@[Agent]" Width="40rem">
+						<TextBox.AddOns>
+							<Hyperlink Icon="Search" Command="{BindCmd Browse, Argument={Bind Document.Agent}, Url='/catalog/agent/browse'}"/>
+						</TextBox.AddOns>
+					</TextBox>
+					<Toolbar Style="Transparent">
+						<Button Icon="Plus" Content="@[Row.Add]" Command="{BindCmd Append, Argument={Bind Document.Rows}}"/>
+					</Toolbar>
+				</Block>
+				<Table ItemsSource="{Bind Document.Rows}" GridLines="Both"
+						Grid.Row="2" StickyHeaders="True" Height="100%">
+					<Table.Columns>
+						<TableColumn Fit="True"/>
+						<TableColumn Fit="True"/>
+						<TableColumn Width="300"/>
+						<TableColumn Fit="True" Width="70"/>
+						<TableColumn Fit="True" Width="70"/>
+						<TableColumn Fit="True" Width="70"/>
+						<TableColumn Width="200"/>
+						<TableColumn Fit="True"/>
+					</Table.Columns>
+					<Table.Header>
+						<TableRow>
+							<TableCell Content="@[Order]"/>
+							<TableCell Content="@[Article]"/>
+							<TableCell Content="@[Product]"/>
+							<TableCell Content="@[Qty]"/>
+							<TableCell Content="@[Price]"/>
+							<TableCell Content="@[Sum]"/>
+							<TableCell Content="@[Memo]"/>
+							<TableCell />
+						</TableRow>
+					</Table.Header>
+					<TableRow>
+						<TableCell Content="{Bind $RowNo}"/>
+						<TextBox Value="{Bind Product.Article}"/>
+						<TextBox Value="{Bind Product.Name}">
+							<TextBox.AddOns>
+								<Hyperlink Icon="Search" Command="{BindCmd Browse, Url='/catalog/product/browse', Argument={Bind Product}}"/>
+							</TextBox.AddOns>
+						</TextBox>
+						<TextBox Value="{Bind Qty, DataType=Number}" Align="Right"/>
+						<TextBox Value="{Bind Price, DataType=Currency}" Align="Right"/>
+						<TextBox Value="{Bind Sum, DataType=Currency}" Align="Right"/>
+						<TextBox Value="{Bind Memo}"/>
+						<Hyperlink Command="{BindCmd Remove, Argument={Bind}}" Icon="Delete"/>
+					</TableRow>
+					<Table.Footer>
+						<TableRow>
+							<TableCell ColSpan="4"/>
+							<TableCell>@[Total]</TableCell>
+							<TableCell Content="{Bind Document.Sum, DataType=Currency}" Align="Right" Bold="True"/>
+							<TableCell ColSpan="2"/>
+						</TableRow>
+					</Table.Footer>
+				</Table>
+				<TextBox Grid.Row="3"
+			Label="@[Memo]" Multiline="True" Rows="4" Value="{Bind Document.Memo}"/>
+			</Grid>
+		</Tab>
+	</TabPanel>
+</Dialog>

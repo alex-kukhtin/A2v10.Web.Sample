@@ -1,7 +1,7 @@
 ﻿
 /* Copyright © 2019-2023 Oleksandr Kukhtin. All rights reserved. */
 
-/* Version 10.0.7919 */
+/* Version 10.0.7935 */
 
 declare function require(url: string): any;
 
@@ -122,6 +122,7 @@ interface IRoot extends IElement {
 	$forceValidate(): void;
 	$setDirty(dirty: boolean, path?: string): void;
 	$createModelInfo(elem: IElementArray<IElement>, modelInfo: IModelInfo): IModelInfo;
+	$hasErrors(props: string[]): boolean;
 }
 
 
@@ -212,7 +213,8 @@ interface Template {
 		noDirty?: boolean,
 		persistSelect?: string[],
 		skipDirty?: string[],
-		bindOnce?: string[]
+		bindOnce?: string[],
+		globalSaveEvent?: string
 	};
 	properties?: {
 		[prop: string]: templateProperty
@@ -232,6 +234,7 @@ interface Template {
 	delegates?: {
 		[prop: string]: (this: IRoot, ...args: any[]) => any
 	};
+	loaded?: (data: object) => void;
 }
 
 declare const enum ReportFormat {
@@ -251,7 +254,7 @@ interface IController {
 	$modalClose(result?: any): any;
 	$msg(msg: string, title?: string, style?: CommonStyle): Promise<boolean>;
 	$alert(msg: string | IMessage): Promise<boolean>;
-	$confirm(msg: string | IConfirm): Promise<boolean>;
+	$confirm(msg: string | IConfirm): Promise<boolean|string>;
 	$showDialog(url: string, data?: object, query?: object): Promise<any>;
 	$inlineOpen(id: string): void;
 	$inlineClose(id: string, result?: any): void;
@@ -271,6 +274,8 @@ interface IController {
 	$upload(url: string, accept?: string, data?: { Id?: any, Key?: any }, opts?: { catchError?: boolean }): Promise<any>;
 	$emitCaller(event: string, ...params: any[]): void;
 	$emitSaveEvent(): void;
+	$emitGlobalUpdate(event: string): void;
+	$emitParentTab(event: string, data?: any): void;
 	$nodirty(func: () => Promise<any>): void;
 	$showSidePane(url: string, arg?: string | number, data?: object): void;
 }
@@ -284,7 +289,9 @@ interface IMessage {
 interface IConfirm {
 	msg: string;
 	style?: MessageStyle;
+	title?: string;
 	list?: string[];
+	buttons?: { text: string, result: string | boolean }[];
 }
 
 interface IErrorInfo {
@@ -299,6 +306,7 @@ interface IViewModel extends IController {
 	readonly $isDirty: boolean;
 	readonly $isPristine: boolean;
 	readonly $canSave: boolean;
+	readonly inDialog: boolean;
 	$errorMessage(path: string): string;
 	$hasError(path: string): boolean;
 	$getErrors(severity: Severity): IErrorInfo[] | null;
@@ -349,6 +357,7 @@ interface UtilsDate {
 	isZero(d: Date): boolean;
 	add(d: Date, nm: number, unit: DateTimeUnit);
 	create(year: number, month: number, day: number): Date;
+	createTime(year: number, month: number, day: number, hour?: number, minute?: number, second?: number): Date
 	fromDays(days: number): Date;
 	compare(d1: Date, d2: Date): number;
 	diff(unit: DateUnit, d1: Date, d2: Date): number;

@@ -26,3 +26,4 @@
 @Images=Зображення
 @Import=Імпортувати
 @File.Sample=Зразок файлу
+@Dialog=Діалог
