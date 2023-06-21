@@ -198,7 +198,7 @@ app.modules['std:const'] = function () {
 
 // Copyright © 2015-2023 Oleksandr Kukhtin. All rights reserved.
 
-// 20230525-7935
+// 20230527-7936
 // services/utils.js
 
 app.modules['std:utils'] = function () {
@@ -243,6 +243,7 @@ app.modules['std:utils'] = function () {
 		eval: evaluate,
 		simpleEval: simpleEval,
 		format: format,
+		convertToString,
 		toNumber,
 		parse: parse,
 		getStringId,
@@ -520,6 +521,15 @@ app.modules['std:utils'] = function () {
 		return formatDate(date);
 	}
 
+	function convertToString(obj) {
+		if (!obj)
+			return '';
+		if (isObjectExact(obj) && 'Name' in obj)
+			return obj.Name;
+		else if (isDate(obj))
+			return formatDate(obj);
+		return '' + val;
+	}
 
 	function format(obj, dataType, opts) {
 		opts = opts || {};
@@ -2760,7 +2770,7 @@ app.modules['std:impl:array'] = function () {
 
 /* Copyright © 2015-2023 Oleksandr Kukhtin. All rights reserved.*/
 
-/*20230525-7935*/
+/*20230605-7936*/
 // services/datamodel.js
 
 /*
@@ -3209,6 +3219,9 @@ app.modules['std:impl:array'] = function () {
 			};
 			elem._fireGlobalAppEvent_ = (ev) => {
 				elem.$emit(ev.event, ev.data);
+			}
+			elem._fireSignalAppEvent_ = (ev) => {
+				elem.$emit("Signal." + ev.event, ev.data);
 			}
 		}
 		if (startTime) {
@@ -3719,7 +3732,7 @@ app.modules['std:impl:array'] = function () {
 
 	function hasErrors(props) {
 		if (!props || !props.length) return false;
-		let errs = this._collectErrors_();
+		let errs = this._allErrors_;
 		if (!errs.length) return false;
 		for (let i = 0; i < errs.length; i++) {
 			let e = errs[i];
@@ -3730,21 +3743,6 @@ app.modules['std:impl:array'] = function () {
 	}
 
 	function collectErrors() {
-		let me = this;
-		if (!me._host_) return me._allErrors_;
-		if (!me._needValidate_) return me._allErrors_;
-		let tml = me.$template;
-		if (!tml) return me._allErrors_;
-		let vals = tml.validators;
-		if (!vals) return me._allErrors_;
-		me._allErrors_.splice(0, me._allErrors_.length);
-		for (var val in vals) {
-			let err1 = validateOneElement(me, val, vals[val]);
-			if (err1) {
-				me._allErrors_.push({ x: val, e: err1 });
-			}
-		}
-		return me._allErrors_;
 	}
 
 	function validateAll(force) {
@@ -3767,6 +3765,23 @@ app.modules['std:impl:array'] = function () {
 			}
 		}
 		logtime('validation time:', startTime);
+		// merge allerrs into
+		// sync arrays:
+		// if me._allErrors_[i] not found in allerrs => remove it
+		let i = me._allErrors_.length;
+		while (i--) {
+			let a = me._allErrors_[i];
+			if (!allerrs.find(n => n.x === a.x))
+				me._allErrors_.splice(i, 1);
+		}
+		// if allerrs[i] not found in me._allErrors_ => append it
+		allerrs.forEach(n => {
+			if (!me._allErrors_.find(a => a.x === n.x))
+				me._allErrors_.push(n);
+		});
+
+
+
 		return allerrs;
 		//console.dir(allerrs);
 	}
@@ -3776,6 +3791,7 @@ app.modules['std:impl:array'] = function () {
 			return;
 		if (path && path.toLowerCase().startsWith('query'))
 			return;
+		this.$root.$emit('Model.dirty.change', val, `${path}.${prop}`);
 		if (isNoDirty(this.$root))
 			return;
 		if (path && prop && isSkipDirty(this.$root, `${path}.${prop}`))
@@ -3935,7 +3951,6 @@ app.modules['std:impl:array'] = function () {
 		root.prototype._validate_ = validate;
 		root.prototype._validateAll_ = validateAll;
 		root.prototype.$forceValidate = forceValidateAll;
-		root.prototype._collectErrors_ = collectErrors;
 		root.prototype.$hasErrors = hasErrors;
 		root.prototype.$destroy = destroyRoot;
 		// props cache for t.construct
@@ -5601,9 +5616,9 @@ Vue.component('validator-control', {
 	app.components['static', staticControl];
 
 })();
-// Copyright © 2015-2022 Alex Kukhtin. All rights reserved.
+// Copyright © 2015-2023 Oleksandr Kukhtin. All rights reserved.
 
-/*20220627-7853*/
+/*20230613-7937*/
 /*components/combobox.js */
 
 (function () {
@@ -5623,10 +5638,10 @@ Vue.component('validator-control', {
 				<optgroup v-for="(grp, grpIndex) in itemsSourceGroup" :key="grpIndex" v-if="groupby"
 					:label="grp.name">
 					<option v-for="(cmb, cmbIndex) in grp.items" :key="grpIndex + '_' + cmbIndex"
-						v-text="getName(cmb, true)" :value="getValue(cmb)"></option>
+						v-text="getName(cmb, true)" :value="getValue(cmb)" :class="getClass(cmb)"></option>
 				</optgroup>
 				<option v-for="(cmb, cmbIndex) in itemsSource" :key="cmbIndex" v-if="!groupby"
-					v-text="getName(cmb, true)" :value="getValue(cmb)"></option>
+					v-text="getName(cmb, true)" :value="getValue(cmb)" :class="getClass(cmb)"></option>
 			</slot>
 		</select>
 		<validator :invalid="invalid" :errors="errors" :options="validatorOptions"></validator>
@@ -5659,6 +5674,7 @@ Vue.component('validator-control', {
 			propToValidate: String,
 			nameProp: String,
 			valueProp: String,
+			boldProp: String,
 			showvalue: Boolean,
 			align: String,
 			groupby : String
@@ -5699,6 +5715,10 @@ Vue.component('validator-control', {
 			getValue(itm) {
 				let v = this.valueProp ? utils.eval(itm, this.valueProp) : itm;
 				return v;
+			},
+			getClass(itm) {
+				return this.boldProp ?
+					(utils.eval(itm, this.boldProp) ? 'bold' : undefined) : undefined;
 			},
 			getWrapText() {
 				return this.showvalue ? this.getComboValue() : this.getText();
@@ -6389,9 +6409,9 @@ Vue.component('validator-control', {
 		}
 	});
 })();
-// Copyright © 2015-2021 Alex Kukhtin. All rights reserved.
+// Copyright © 2015-2023 Oleksandr Kukhtin. All rights reserved.
 
-// 20210729-7798
+// 20230528-7936
 // components/periodpicker.js
 
 
@@ -6577,6 +6597,7 @@ Vue.component('validator-control', {
 				let root = this.item.$root;
 				if (!root) return;
 				let eventName = this.item._path_ + '.' + this.prop + '.change';
+				root.$setDirty(true);
 				root.$emit(eventName, this.item, this.period, null);
 			},
 			toggle(ev) {
@@ -6640,7 +6661,7 @@ Vue.component('validator-control', {
 
 // Copyright © 2015-2023 Alex Kukhtin. All rights reserved.
 
-/*20230217-7921*/
+/*20230613-7937*/
 // components/selector.js
 
 (function selector_component() {
@@ -6670,10 +6691,10 @@ Vue.component('validator-control', {
 		<validator :invalid="invalid" :errors="errors" :options="validatorOptions"></validator>
 		<div class="selector-pane" v-if="isOpen" ref="pane" :class="paneClass">
 			<div class="selector-body" :style="bodyStyle">
-				<slot name="pane" :items="items" :is-item-active="isItemActive" :item-name="itemName" :hit="hit" :slotStyle="slotStyle">
+				<slot name="pane" :items="items" :is-item-active="isItemActive" :item-name="itemName" :hit="hit" :max-chars="maxChars" :slotStyle="slotStyle">
 					<ul class="selector-ul">
 						<li @mousedown.prevent="hit(itm)" :class="{active: isItemActive(itmIndex)}"
-							v-for="(itm, itmIndex) in items" :key="itmIndex" v-text="itemName(itm)">}</li>
+							v-for="(itm, itmIndex) in items" :key="itmIndex" v-text="itemName(itm)"></li>
 					</ul>
 				</slot>
 			</div>
@@ -6709,7 +6730,8 @@ Vue.component('validator-control', {
 			hasClear: Boolean,
 			mode: String,
 			fetchCommand: String,
-			fetchCommandData: Object
+			fetchCommandData: Object,
+			maxChars: Number
 		},
 		data() {
 			return {
@@ -6827,7 +6849,10 @@ Vue.component('validator-control', {
 				return ix === this.current;
 			},
 			itemName(itm) {
-				return utils.simpleEval(itm, this.display);
+				let v = utils.simpleEval(itm, this.display);
+				if (this.maxChars)
+					return utils.text.maxChars(v, this.maxChars);
+				return v;
 			},
 			blur() {
 				let text = this.query;
@@ -9383,9 +9408,9 @@ TODO:
 	});
 
 })();
-// Copyright © 2015-2019 Alex Kukhtin. All rights reserved.
+// Copyright © 2015-2023 Oleksandr Kukhtin. All rights reserved.
 
-// 20190328-7473
+// 20230527-7936
 // components/list.js
 
 /* TODO:
@@ -9404,7 +9429,7 @@ TODO:
 <ul class="a2-list" v-lazy="itemsSource">
 	<template v-if="itemsSource">
 		<li class="a2-list-item" tabindex="1" :class="cssClass(listItem)" v-for="(listItem, listItemIndex) in source" :key="listItemIndex" 
-				@mousedown.prevent="select(listItem)" @keydown="keyDown" 
+				@mousedown="select(listItem)" @keydown="keyDown" 
 				ref="li" v-on:dblclick.prevent="doDblClick">
 			<span v-if="listItem.__group" v-text="listItem.__group"></span>
 			<slot name="items" :item="listItem" v-if="!listItem.__group"/>
@@ -12875,7 +12900,7 @@ Vue.directive('resize', {
 
 // Copyright © 2015-2023 Oleksandr Kukhtin. All rights reserved.
 
-/*20230525-7935*/
+/*20230605-7936*/
 // controllers/base.js
 
 (function () {
@@ -13102,6 +13127,30 @@ Vue.directive('resize', {
 						obj[k] = null;
 				}
 			},
+			$savePart(dataToSave, urlToSave, dialog) {
+				if (this.$data.$readOnly)
+					return;
+				eventBus.$emit('closeAllPopups');
+				let self = this;
+				let root = window.$$rootUrl;
+				const routing = require('std:routing'); // defer loading
+
+				let url = `${root}/${routing.dataUrl()}/save`;
+				return new Promise(function (resolve, reject) {
+					let baseUrl = urltools.combine(dialog ? '/_dialog' : '/_page', urlToSave);
+					let jsonData = utils.toJson({ baseUrl: baseUrl, data: dataToSave });
+					dataservice.post(url, jsonData).then(function (data) {
+						if (self.__destroyed__) return;
+						if (dataToSave.$merge)
+							dataToSave.$merge(data, true, true /*only exists*/);
+						resolve(dataToSave); // merged
+					}).catch(function (msg) {
+						if (msg === __blank__)
+							return;
+						self.$alertUi(msg);
+					});
+				});
+			},
 			$save(opts) {
 				if (this.$data.$readOnly)
 					return;
@@ -13318,11 +13367,11 @@ Vue.directive('resize', {
 				await callback();
 				this.$defer(() => this.$data.$setDirty(wasDirty));
 			},
-			$requery() {
+			$requery(query) {
 				if (this.inDialog)
 					eventBus.$emit('modalRequery', this.$baseUrl);
 				else
-					eventBus.$emit('requery', this);
+					eventBus.$emit('requery', this, query);
 			},
 
 			$remove(item, confirm) {
@@ -14032,6 +14081,8 @@ Vue.directive('resize', {
 					opts = { dataType: opts };
 				if (!opts.format && !opts.dataType && !opts.mask)
 					return value;
+				if (opts.format === 'ToString')
+					return utils.convertToString(value, opts);
 				if (opts.mask)
 					return value ? mask.getMasked(opts.mask, value) : value;
 				if (opts.dataType)
@@ -14264,6 +14315,7 @@ Vue.directive('resize', {
 			__createController__() {
 				let ctrl = {
 					$save: this.$save,
+					$savePart: this.$savePart,
 					$invoke: this.$invoke,
 					$close: this.$close,
 					$modalClose: this.$modalClose,
@@ -14362,6 +14414,10 @@ Vue.directive('resize', {
 			__global_period_changed__(period) {
 				this.$data._fireGlobalPeriodChanged_(period);
 			},
+			__signalAppEvent__(data) {
+				if (this.$data._fireSignalAppEvent_)
+					this.$data._fireSignalAppEvent_(data);
+			},
 			__globalAppEvent__(data) {
 				if (this.$data._fireGlobalAppEvent_)
 					this.$data._fireGlobalAppEvent_(data);
@@ -14384,6 +14440,7 @@ Vue.directive('resize', {
 			eventBus.$on('invokeTest', this.__invoke__test__);
 			eventBus.$on('globalPeriodChanged', this.__global_period_changed__);
 			eventBus.$on('globalAppEvent', this.__globalAppEvent__);
+			eventBus.$on('signalEvent', this.__signalAppEvent__);
 
 			this.$on('cwChange', this.__cwChange);
 			this.__asyncCache__ = {};
