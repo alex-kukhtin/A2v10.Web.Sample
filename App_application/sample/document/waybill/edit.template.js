@@ -7,16 +7,14 @@ define(["require", "exports"], function (require, exports) {
             'TRow.Sum'() { return this.Qty * this.Price; },
             'TDocument.Sum': getDocumentSum
         },
-        events: {
-            'Model.load': modelLoad
-        },
-        commands: {}
+        events: {},
+        commands: {},
+        defaults: {
+            'Document.Date'() { return du.today(); }
+        }
     };
     exports.default = template;
     function getDocumentSum() {
         return this.Rows.reduce((p, c) => p + c.Sum, 0);
-    }
-    function modelLoad() {
-        this.Document.Date = du.today();
     }
 });

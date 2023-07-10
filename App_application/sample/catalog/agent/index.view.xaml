@@ -58,12 +58,8 @@
 					<Button Icon="Edit" Command="{BindCmd Execute, CommandName=editItem, Argument={Bind Folders.Selected(Children)}}" />
 					<Button Icon="Delete" Command="{BindCmd Execute, CommandName=deleteItem, Argument={Bind Folders.Selected(Children)}}"/>
 					<Separator />
-					<TextBox Label="Пошук:" Value="{Bind Root.$Filter}" Placeholder="фрагмент назви, коду, примітки" Width="25rem">
-						<TextBox.AddOns>
-							<Hyperlink Icon="Search" />
-							<Hyperlink Icon="Clear" Command="{BindCmd Execute, CommandName=clearFilter}"/>
-						</TextBox.AddOns>
-					</TextBox>
+					<TextBox Label="Пошук:" Value="{Bind Root.$Filter}" Placeholder="фрагмент назви, коду, примітки" Width="25rem"
+							 ShowSearch="True" ShowClear="True" />
 					<Separator />
 					<Button Icon="Reload" 
 							Command="{BindCmd Reload, Argument={Bind Folders.Selected(Children)}}" Tip="Оновити"/>

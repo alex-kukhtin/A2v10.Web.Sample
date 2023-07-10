@@ -13,10 +13,12 @@ const template: Template = {
 		'TDocument.Sum': getDocumentSum
 	},
 	events: {
-		'Model.load': modelLoad
 	},
 	commands: {
 
+	},
+	defaults: {
+		'Document.Date'() { return du.today(); }
 	}
 }
 
@@ -24,8 +26,4 @@ export default template;
 
 function getDocumentSum(this: TDocument): number {
 	return this.Rows.reduce((p, c) => p + c.Sum, 0);
-}
-
-function modelLoad(this: TRoot) {
-	this.Document.Date = du.today();
 }

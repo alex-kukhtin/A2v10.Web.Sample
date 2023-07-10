@@ -11,6 +11,7 @@
 		<Toolbar>
 			<Button Content="@[Save]" Icon="Save" Command="{BindCmd Save}"/>
 			<Button Content="@[Reload]" Icon="Reload" Command="{BindCmd Reload}"/>
+			<Button Content="@[Export]" Icon="ExportExcel" Command="{BindCmd Command=Export, Format=Excel}"/>
 			<Button Content="@[Close]" Icon="Close" Command="{BindCmd Close}" Toolbar.Align="Right"/>
 		</Toolbar>
 	</Page.Toolbar>

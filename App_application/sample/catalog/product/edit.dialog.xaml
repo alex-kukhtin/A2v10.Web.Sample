@@ -14,7 +14,7 @@
 			</Grid>
 		</Tab>
 		<Tab Header="@[Images]" Padding="1rem">
-			<Image Source="{Bind Product.Picture}" Limit="100"
+			<Image Source="{Bind Product.Picture}"
 				Base="/catalog/product" Height="18rem"/>
 		</Tab>
 	</TabPanel>
