@@ -4,7 +4,7 @@
   font-family: 'A2v10';
   font-display: fallback;
   src: url('/css/fonts/A2v10.eot');
-  src: url('/css/fonts/A2v10.eot?#iefix') format('eot'), url('/css/fonts/A2v10.woff?v=7895') format('woff'), url('/css/fonts/A2v10.ttf?v=7895') format('truetype'), url('/css/fonts/A2v10.svg#A2v10') format('svg');
+  src: url('/css/fonts/A2v10.eot?#iefix') format('eot'), url('/css/fonts/A2v10.woff?v=7930') format('woff'), url('/css/fonts/A2v10.ttf?v=7930') format('truetype'), url('/css/fonts/A2v10.svg#A2v10') format('svg');
   font-weight: normal;
   font-style: normal;
 }
@@ -61,11 +61,17 @@
 .ico-arrow-left-right:before {
   content: "\e906";
 }
+.ico-arrow-left-right-full:before {
+  content: "\e907";
+}
 .ico-arrow-export:before {
   content: "\e908";
 }
 .ico-export-excel:before {
   content: "\e913";
+}
+.ico-logout:before {
+  content: "\e914";
 }
 .ico-arrow-open:before {
   content: "\e909";
@@ -302,6 +308,9 @@
 .ico-database:before {
   content: "\e945";
 }
+.ico-board:before {
+  content: "\e946";
+}
 .ico-dot:before {
   content: "\ea49";
 }
@@ -340,6 +349,9 @@
 }
 .ico-devices:before {
   content: "\e958";
+}
+.ico-personnel:before {
+  content: "\e9c0";
 }
 .ico-ellipsis-bottom:before {
   content: "\e9b3";
@@ -770,6 +782,12 @@
 .ico-pane-right-blue:before {
   content: "\eab2";
   color: #1ba1e2 !important;
+}
+.ico-pane-close:before {
+  content: "\e90b";
+}
+.ico-pane-open:before {
+  content: "\e90c";
 }
 .ico-workflow1:before {
   content: "\eabb";
@@ -1921,7 +1939,7 @@ table.data-grid > tbody > tr.bold > td {
   color: #a94442;
   border: 1px solid #dca7a7;
   box-shadow: 1px 4px 10px rgba(169, 68, 66, 0.3);
-  white-space: pre;
+  white-space: pre-line;
 }
 .control-group {
   display: block;
@@ -3866,9 +3884,25 @@ iframe.eusign-iframe {
   background-color: #ddd;
   align-self: stretch;
 }
+/* controls */
+/* header-footer */
+/* nav bar */
+/* side bar */
+/* data grid */
+/* toolbar */
+/* table */
+/* tree-view*/
+/* dialog */
+/* z-index */
+/*
+@hover-open-index: auto;
+@invalid-index: auto;
+@focus-index: auto;
+@hover-index: auto;
+*/
 .a2-tab-bar {
   display: flex;
-  border-bottom: 0.3rem solid #ddd;
+  border-bottom: 3px solid #ddd;
   align-items: baseline;
   margin: 0.65rem 0;
 }
@@ -3880,8 +3914,8 @@ iframe.eusign-iframe {
 }
 .a2-tab-button {
   padding: 0.65rem 0;
-  border-bottom: 0.3rem solid #ddd;
-  margin-bottom: -0.3rem;
+  border-bottom: 3px solid #ddd;
+  margin-bottom: -3px;
   font-weight: bold;
   font-size: 1.2rem;
   display: block;
@@ -3909,7 +3943,7 @@ iframe.eusign-iframe {
 }
 .a2-tab-bar.tab-bar-main-menu .a2-tab-bar-item:hover {
   background-color: #e8e9f4;
-  margin-bottom: -0.3rem;
+  margin-bottom: -3px;
 }
 .a2-tab-bar.tab-bar-main-menu .a2-tab-button {
   font-weight: normal;
@@ -3947,13 +3981,13 @@ iframe.eusign-iframe {
 }
 .a2-tab-bar.tab-bar-tab {
   border-bottom: 1px solid #ddd;
-  border-top: 0.3rem solid transparent;
+  border-top: 3px solid transparent;
   background-color: #f9f9f9;
   margin: 0;
 }
 .a2-tab-bar.tab-bar-tab .a2-tab-bar-item {
   padding: 0;
-  margin-top: -0.3rem;
+  margin-top: -3px;
   margin-bottom: -1px;
 }
 .a2-tab-bar.tab-bar-tab .a2-tab-button {
@@ -3964,7 +3998,7 @@ iframe.eusign-iframe {
 }
 .a2-tab-bar.tab-bar-tab .a2-tab-button.active {
   background-color: white;
-  border-top: 0.3rem solid gold;
+  border-top: 3px solid gold;
   border-left-color: #ddd;
   border-right-color: #ddd;
   border-bottom-color: white;

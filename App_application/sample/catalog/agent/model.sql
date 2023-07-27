@@ -37,8 +37,8 @@ begin
 	from T
 	order by [IsSpec], [Name];
 
-	-- описание набора TAgent - пустой набор, чтобы создать правильную структуру данных
-	-- родительская папка - вложенный объект, чтобы не плодить лишние наборы
+	-- опис набору TAgent - пустий набор, щоб створити правильну структуру даних
+	-- батьківська папка - вкладений об'єкт, щоб не створювати зайві набори
 	select [!TAgent!Array] = null, [Id!!Id] = a.Id, [Name!!Name] = a.[Name], a.Code, a.Memo,
 		[ParentFolder.Id!TParentFolder!Id] = a.Parent, [ParentFolder.Name!TParentFolder!Name] = p.[Name]
 		from a2v10sample.Agents a left join a2v10sample.Agents p on a.Parent = p.Id where 0 <> 0;
@@ -462,5 +462,25 @@ begin
 	select [Result!TResult!Object] = null, T.Id, RowNo = T.RowNumber - 1 /*row_number is 1-based*/
 	from T
 	where T.Id = @Id;
+end
+go
+------------------------------------------------
+create or alter procedure a2v10sample.[Agent.Fetch]
+@UserId bigint,
+@Id bigint = null,
+@Text nvarchar(255)
+as
+begin
+	set nocount on;
+	set transaction isolation level read uncommitted;
+
+	declare @fr nvarchar(255);
+	set @fr = N'%' + @Text + N'%';
+
+ 	select [Agents!TAgent!Array] = null, [Id!!Id] = a.Id, [Name!!Name] = a.[Name], a.Code, a.Memo
+	from a2v10sample.Agents a 
+	where a.Folder = 0 and a.Void = 0 and 
+		(@fr is null or a.[Name] like @fr or a.Memo like @fr or a.Code like @fr);
+	
 end
 go

@@ -9,24 +9,23 @@
 	</Page.Taskpad>
 	<Page.Toolbar>
 		<Toolbar>
-			<Button Content="@[Save]" Icon="Save" Command="{BindCmd Save}"/>
+			<Button Content="@[Save]" Icon="Save" Command="{BindCmd Save, ValidRequired=True}"/>
 			<Button Content="@[Reload]" Icon="Reload" Command="{BindCmd Reload}"/>
-			<Button Content="@[Close]" Icon="Close" Command="{BindCmd Close}" Toolbar.Align="Right"/>
+			<Button Content="Test" Render="Hide" Icon="External" Command="{BindCmd Execute, CommandName=test}"/>
+			<ToolbarAligner />
+			<Button Content="@[Close]" Icon="Close" Command="{BindCmd Close}"/>
 		</Toolbar>
 	</Page.Toolbar>
 	<Grid Height="100%" Rows="Auto,1*,Auto">
 		<Block>
-		<Header Grid.Row="1">@[Waybill]</Header>
-		<TextBox Label="@[No]" Value="{Bind Document.No}" Width="20rem"/>
-		<DatePicker Label="@[Date]" Value="{Bind Document.Date, DataType=Date}" Width="20rem"/>
-		<TextBox Value="{Bind Document.Agent.Name}" Label="@[Agent]" Width="40rem">
-			<TextBox.AddOns>
-				<Hyperlink Icon="Search" Command="{BindCmd Browse, Argument={Bind Document.Agent}, Url='/catalog/agent/browse'}"/>
-			</TextBox.AddOns>
-		</TextBox>
-		<Toolbar Style="Transparent">
-			<Button Icon="Plus" Content="@[Row.Add]" Command="{BindCmd Append, Argument={Bind Document.Rows}}"/>
-		</Toolbar>
+			<Header Grid.Row="1">@[Waybill]</Header>
+			<TextBox Label="@[No]" Value="{Bind Document.No}" Width="20rem"/>
+			<DatePicker Label="@[Date]" Value="{Bind Document.Date, DataType=Date}" Width="20rem"/>
+			<SelectorSimple Value="{Bind Document.Agent}" Label="@[Agent]" Width="40rem" 
+						Url="/catalog/agent"/>
+			<Toolbar Style="Transparent">
+				<Button Icon="Plus" Content="@[Row.Add]" Command="{BindCmd Append, Argument={Bind Document.Rows}}"/>
+			</Toolbar>
 		</Block>
 		<Table ItemsSource="{Bind Document.Rows}" GridLines="Both"
 			   Grid.Row="2" StickyHeaders="True" Height="100%">
@@ -53,9 +52,9 @@
 				</TableRow>
 			</Table.Header>
 			<TableRow>
-				<TableCell Content="{Bind $RowNo}"/>
+				<TableCell Content="{Bind RowNumber}"/>
 				<TextBox Value="{Bind Product.Article}"/>
-				<TextBox Value="{Bind Product.Name}">
+				<TextBox Value="{Bind Product.Name}" ValidateValue="{Bind Product}">
 					<TextBox.AddOns>
 						<Hyperlink Icon="Search" Command="{BindCmd Browse, Url='/catalog/product/browse', Argument={Bind Product}}"/>
 					</TextBox.AddOns>

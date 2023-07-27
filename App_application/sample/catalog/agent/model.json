@@ -35,6 +35,10 @@
 		}
 	},
 	"commands": {
+		"fetch": {
+			"type": "sql",
+			"procedure": "Agent.Fetch"
+		},
 		"deleteFolder": {
 			"type": "sql",
 			"procedure": "Agent.Folder.Delete"
