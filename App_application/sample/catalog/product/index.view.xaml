@@ -8,7 +8,7 @@
 			<Button Command="{BindCmd Dialog, Action=EditSelected, Argument={Bind Parent.ItemsSource}, Url='/catalog/product/edit'}" Icon="Edit" Content="@[Edit]"/>
 			<Button Command="{BindCmd Command=DbRemoveSelected, Argument={Bind Parent.ItemsSource}, Confirm='@[AreYouSure]'}" Icon="Delete" Content="@[Delete]"/>
 			<Separator />
-			<TextBox Label="@[Search]" Value="{Bind Parent.Filter.Fragment}" ShowClear="True"/>
+			<TextBox Label="@[Search]" Value="{Bind Parent.Filter.Fragment}" ShowClear="True" ShowSearch="True"/>
 			<Button Command="{BindCmd Reload}" Content="@[Reload]" Icon="Reload"/>
 			<Button Icon="FileImport" Content="@[Import]" Command="{BindCmd Dialog, Action=Show, Url='/catalog/product/import'}" 
 				Toolbar.Align="Right"/>

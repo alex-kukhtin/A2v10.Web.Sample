@@ -5,6 +5,8 @@ create or alter procedure a2v10sample.[Document.Index]
 as
 begin
 	set nocount on;
+	set transaction isolation level read uncommitted;
+
 	select [Documents!TDocument!Array] = null, [Id!!Id] = Id, [Date], [No], [Sum], [Memo], DateCreated,
 		[Agent!TAgent!RefId] = Agent
 	from a2v10sample.Documents 
@@ -24,6 +26,7 @@ create or alter procedure a2v10sample.[Document.Load]
 as
 begin
 	set nocount on;
+	set transaction isolation level read uncommitted;
 
 	select [Document!TDocument!Object] = null, [Id!!Id] = Id, [Date], [No], [Sum], [Memo], 
 	[Agent!TAgent!RefId] = Agent, [Rows!TRow!Array] = null,
@@ -44,6 +47,18 @@ begin
 	select [!TProduct!Map] = null, [Id!!Id] = p.Id, p.[Name], p.Memo, p.BarCode, p.Article
 	from a2v10sample.Products p inner join a2v10sample.DocDetails dd on dd.Product = p.Id
 	where dd.Document = @Id;
+end
+go
+------------------------------------------------
+create or alter procedure a2v10sample.[Document.Load.Export]
+@UserId bigint,
+@Id bigint = null,
+@Kind nvarchar(32) = null
+as
+begin
+	set nocount on;
+	set transaction isolation level read uncommitted;
+	exec a2v10sample.[Document.Load] @UserId = @UserId, @Id = @Id, @Kind = @Kind;
 end
 go
 ------------------------------------------------

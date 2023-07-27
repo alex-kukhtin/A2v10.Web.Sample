@@ -2,6 +2,12 @@
 	"$schema": "../../../@schemas/model-json-schema.json#",
 	"schema": "a2v10sample",
 	"model": "Product",
+	"imageSettings": {
+		"Picture": {
+			"quality": 10,
+			"threshold": 5
+		}
+	},
 	"actions": {
 		"index": {
 			"index": true,

@@ -16,6 +16,20 @@
 			"view": "edit.view",
 			"parameters": {
 				"Kind": "Waybill"
+			},
+			"export": {
+				"format": "xlsx",
+				"template": "waybill.xlsx",
+				"fileName": "Waybill"
+			}
+		}
+	},
+	"dialogs": {
+		"editDialog": {
+			"template": "edit.template",
+			"view": "edit.dialog",
+			"parameters": {
+				"Kind": "Waybill"
 			}
 		}
 	}

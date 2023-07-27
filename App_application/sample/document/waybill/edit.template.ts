@@ -24,7 +24,6 @@ const template: Template = {
 		'Document.Agent': 'Оберіть контрагента'
 	},
 	commands: {
-		test
 	}
 }
 
@@ -37,7 +36,7 @@ function getDocumentSum(this: TDocument): number {
 function test() {
 	let rawErrors = this.$vm.$getErrors();
 	console.dir(rawErrors);
-	let errs = rawErrors.map(e => { return { msg: e.msg, ix: e.index, path: e.path.x }; } )
+	let errs = rawErrors.map(e => { return { msg: e.msg, ix: e.index, path: e.path.x }; })
 	console.dir(errs);
 	console.dir(this.Document.Rows[2]._errors_)
 }
