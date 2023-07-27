@@ -1,6 +1,6 @@
 ﻿/*
 version: 10.0.0021
-generated: 27.07.2023 21:55:24
+generated: 27.07.2023 23:02:21
 */
 
 set nocount on;
@@ -322,8 +322,8 @@ begin
 	from T
 	order by [IsSpec], [Name];
 
-	-- описание набора TAgent - пустой набор, чтобы создать правильную структуру данных
-	-- родительская папка - вложенный объект, чтобы не плодить лишние наборы
+	-- опис набору TAgent - пустий набор, щоб створити правильну структуру даних
+	-- батьківська папка - вкладений об'єкт, щоб не створювати зайві набори
 	select [!TAgent!Array] = null, [Id!!Id] = a.Id, [Name!!Name] = a.[Name], a.Code, a.Memo,
 		[ParentFolder.Id!TParentFolder!Id] = a.Parent, [ParentFolder.Name!TParentFolder!Name] = p.[Name]
 		from a2v10sample.Agents a left join a2v10sample.Agents p on a.Parent = p.Id where 0 <> 0;
@@ -749,7 +749,26 @@ begin
 	where T.Id = @Id;
 end
 go
+------------------------------------------------
+create or alter procedure a2v10sample.[Agent.Fetch]
+@UserId bigint,
+@Id bigint = null,
+@Text nvarchar(255)
+as
+begin
+	set nocount on;
+	set transaction isolation level read uncommitted;
 
+	declare @fr nvarchar(255);
+	set @fr = N'%' + @Text + N'%';
+
+ 	select [Agents!TAgent!Array] = null, [Id!!Id] = a.Id, [Name!!Name] = a.[Name], a.Code, a.Memo
+	from a2v10sample.Agents a 
+	where a.Folder = 0 and a.Void = 0 and 
+		(@fr is null or a.[Name] like @fr or a.Memo like @fr or a.Code like @fr);
+	
+end
+go
 ------------------------------------------------
 create or alter procedure a2v10sample.[Product.Index]
 @UserId bigint,
@@ -999,6 +1018,8 @@ create or alter procedure a2v10sample.[Document.Index]
 as
 begin
 	set nocount on;
+	set transaction isolation level read uncommitted;
+
 	select [Documents!TDocument!Array] = null, [Id!!Id] = Id, [Date], [No], [Sum], [Memo], DateCreated,
 		[Agent!TAgent!RefId] = Agent
 	from a2v10sample.Documents 
@@ -1018,6 +1039,7 @@ create or alter procedure a2v10sample.[Document.Load]
 as
 begin
 	set nocount on;
+	set transaction isolation level read uncommitted;
 
 	select [Document!TDocument!Object] = null, [Id!!Id] = Id, [Date], [No], [Sum], [Memo], 
 	[Agent!TAgent!RefId] = Agent, [Rows!TRow!Array] = null,
@@ -1026,7 +1048,7 @@ begin
 	where @Id = Id;
 
 	select [!TRow!Array] = null, [Id!!Id] = dd.Id, [!TDocument.Rows!ParentId] = [Document], [Qty], Price, [Sum],
-		Memo, [Product!TProduct!RefId] = Product
+		Memo, [Product!TProduct!RefId] = Product, [RowNumber!!RowNumber] = dd.RowNo
 	from a2v10sample.DocDetails dd
 	where Document = @Id
 	order by [RowNo];
@@ -1038,6 +1060,18 @@ begin
 	select [!TProduct!Map] = null, [Id!!Id] = p.Id, p.[Name], p.Memo, p.BarCode, p.Article
 	from a2v10sample.Products p inner join a2v10sample.DocDetails dd on dd.Product = p.Id
 	where dd.Document = @Id;
+end
+go
+------------------------------------------------
+create or alter procedure a2v10sample.[Document.Load.Export]
+@UserId bigint,
+@Id bigint = null,
+@Kind nvarchar(32) = null
+as
+begin
+	set nocount on;
+	set transaction isolation level read uncommitted;
+	exec a2v10sample.[Document.Load] @UserId = @UserId, @Id = @Id, @Kind = @Kind;
 end
 go
 ------------------------------------------------
@@ -1067,16 +1101,16 @@ begin
 	declare @RetId bigint;
 	declare @output table(op sysname, id bigint);
 
-	merge a2v10sample.Documents as target
-	using @Document as source
-	on (target.Id = source.Id)
+	merge a2v10sample.Documents as t
+	using @Document as s
+	on (t.Id = s.Id)
 	when matched then update set 
-		target.[Date] = source.[Date],
-		target.[No] = source.[No],
-		target.Agent = source.Agent,
-		target.[Sum] = source.[Sum],
-		target.Memo = source.Memo,
-		target.DateModified = getdate()
+		t.[Date] = s.[Date],
+		t.[No] = s.[No],
+		t.Agent = s.Agent,
+		t.[Sum] = s.[Sum],
+		t.Memo = s.Memo,
+		t.DateModified = getdate()
 	when not matched by target then
 	insert(Kind, [Date], [No], Agent, [Sum], Memo) 
 	values (@Kind, [Date], [No], Agent, [Sum], Memo)
@@ -1087,21 +1121,20 @@ begin
 
 	select top(1) @RetId = id from @output;
 
-	merge a2v10sample.DocDetails as target
+	merge a2v10sample.DocDetails as t
 	using @Rows as source
-	on (target.Id = source.Id and target.Document = @RetId)
-	when matched then 
-		update set
-			target.RowNo = source.RowNumber,
-			target.Product = source.Product,
-			target.Qty = source.Qty,
-			target.Price = source.Price,
-			target.[Sum] = source.[Sum],
-			target.Memo = source.Memo
+	on (t.Id = source.Id and t.Document = @RetId)
+	when matched then update set
+		t.RowNo = source.RowNumber,
+		t.Product = source.Product,
+		t.Qty = source.Qty,
+		t.Price = source.Price,
+		t.[Sum] = source.[Sum],
+		t.Memo = source.Memo
 	when not matched by target then
 		insert (Document, RowNo, Qty, Price, [Sum], Product, Memo)
 		values (@RetId, RowNumber, Qty, Price, [Sum], Product, Memo)
-	when not matched by source and target.Document = @RetId then delete;
+	when not matched by source and t.Document = @RetId then delete;
 
 	exec a2v10sample.[Document.Load] @UserId, @RetId;
 end

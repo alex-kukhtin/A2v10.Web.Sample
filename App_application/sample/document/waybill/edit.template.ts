@@ -24,6 +24,7 @@ const template: Template = {
 		'Document.Agent': 'Оберіть контрагента'
 	},
 	commands: {
+		test
 	}
 }
 
