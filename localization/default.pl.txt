@@ -34,6 +34,8 @@
 @SetNewPassword=Ustawianie hasła
 @InviteEMail=Witaj!
 @ChangePasswordDisabled=Zmiana hasła jest zabroniona
+@InviteUserSubject=Invitation
+@InviteUserBody=<a href="{0}">Click here to continue registration</a>
 ;
 @Home=Główna
 @Documents=Dokumentacja
@@ -146,3 +148,10 @@
 @ErrorAntiForgery=Żądanie zostało już złożone w innym oknie przeglądarki. Strona zostanie ponownie załadowana
 @IHaveCode=Mam kod weryfikacyjny
 @AvailableLocales={"uk-UA": 'ukraiński',"ru-RU": 'rosyjski',"en-US": 'angielski',"de-DE": 'niemiecki'}
+;
+@CloseTabsRight=Close tabs to the right
+@CloseOtherTabs=Close other tabs
+@ReopenClosedTab=Reopen closed tab
+@CloseAllTabs=Close all tabs
+@OpenTabs=Open tabs
+@RecentlyClosedTabs=Recently closed

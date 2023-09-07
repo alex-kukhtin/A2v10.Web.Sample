@@ -177,7 +177,7 @@ app.modules['std:locale'] = function () {
 
 // Copyright © 2015-2023 Oleksandr Kukhtin. All rights reserved.
 
-// 20230527-7936
+// 20230814-7943
 // services/utils.js
 
 app.modules['std:utils'] = function () {
@@ -518,6 +518,7 @@ app.modules['std:utils'] = function () {
 			return '';
 		switch (dataType) {
 			case "DateTime":
+				if (!obj) return '';
 				if (!isDate(obj)) {
 					console.error(`Invalid Date for utils.format (${obj})`);
 					return obj;
@@ -528,6 +529,7 @@ app.modules['std:utils'] = function () {
 					return formatDateWithFormat(obj, opts.format);
 				return formatDate(obj) + ' ' + formatTime(obj);
 			case "Date":
+				if (!obj) return '';
 				if (isString(obj))
 					obj = string2Date(obj);
 				if (!isDate(obj)) {
@@ -724,6 +726,7 @@ app.modules['std:utils'] = function () {
 	}
 
 	function dateIsZero(d1) {
+		if (d1 === null) return true;
 		if (!isDate(d1)) return false;
 		return dateEqual(d1, dateZero());
 	}
@@ -2930,7 +2933,7 @@ const maccel = require('std:accel');
 
 // Copyright © 2015-2021 Oleksandr Kukhtin. All rights reserved.
 
-// 20210211-7747
+// 20210823-7842
 /* services/modelinfo.js */
 
 app.modules['std:modelInfo'] = function () {
@@ -2967,7 +2970,10 @@ app.modules['std:modelInfo'] = function () {
 		let x = { pageSize: mi.PageSize, offset: mi.Offset, dir: mi.SortDir, order: mi.SortOrder, group: mi.GroupBy };
 		if (mi.Filter) {
 			for (let p in mi.Filter) {
-				x[p] = mi.Filter[p];
+				let fv = mi.Filter[p];
+				if (fv && fv.call)
+					fv = fv.call(this);
+				x[p] = fv;
 			}
 		}
 		return x;
@@ -3749,7 +3755,7 @@ app.modules['std:validators'] = function () {
 
 // Copyright © 2015-2023 Oleksandr Kukhtin. All rights reserved.
 
-/*20230318-7922*/
+/*20230807-7941*/
 /* services/impl/array.js */
 
 app.modules['std:impl:array'] = function () {
@@ -3852,14 +3858,19 @@ app.modules['std:impl:array'] = function () {
 
 	function addResize(arr) {
 
-		arr.$empty = function () {
-			if (this.$root.isReadOnly)
-				return this;
-			this._root_.$setDirty(true);
+		arr.__empty__ = function () {
+			// without dirty
 			this.splice(0, this.length);
 			if ('$RowCount' in this)
 				this.$RowCount = 0;
 			return this;
+		}
+
+		arr.$empty = function () {
+			if (this.$root.isReadOnly)
+				return this;
+			this._root_.$setDirty(true);
+			return this.__empty__();
 		};
 
 		arr.$append = function (src) {
@@ -4088,6 +4099,7 @@ app.modules['std:impl:array'] = function () {
 	}
 
 	function defineArrayItemProto(elem) {
+
 		let proto = elem.prototype;
 
 		proto.$remove = function () {
@@ -4114,12 +4126,39 @@ app.modules['std:impl:array'] = function () {
 			}
 		};
 
+		proto.$canMove = function (dir) {
+			let arr = this._parent_;
+			if (arr.length < 2) return;
+			let i1 = arr.indexOf(this);
+			if (dir === 'up')
+				return i1 >= 1;
+			else if (dir === 'down')
+				return i1 < arr.length - 1;
+			return false;
+		}
+
+		proto.$move = function(dir) {
+			let arr = this._parent_;
+			if (arr.length < 2) return;
+			let i1 = arr.indexOf(this);
+			let i2 = i1;
+			if (dir === 'up') {
+				if (i1 < 1) return;
+				i1 -= 1;
+			} else if (dir === 'down') {
+				if (i1 >= arr.length - 1) return;
+				i2 += 1;
+			}
+			arr.splice(i1, 2, arr[i2], arr[i1]);
+			arr.$renumberRows();
+			return this;
+		}
 	}
 };
 
 /* Copyright © 2015-2023 Oleksandr Kukhtin. All rights reserved.*/
 
-/*20230705-7939*/
+/*20230807-7941*/
 // services/datamodel.js
 
 /*
@@ -5137,6 +5176,7 @@ app.modules['std:impl:array'] = function () {
 	}
 
 	function setDirty(val, path, prop) {
+		if (val === this.$dirty) return;
 		if (this.$root.$readOnly)
 			return;
 		this.$root.$emit('Model.dirty.change', val, `${path}.${prop}`);
@@ -5395,7 +5435,7 @@ app.modules['std:impl:array'] = function () {
 
 // Copyright © 2015-2023 Oleksandr Kukhtin. All rights reserved.
 
-/*20230618-7938*/
+/*20230830-7947*/
 // controllers/base.js
 
 (function () {
@@ -5636,9 +5676,11 @@ app.modules['std:impl:array'] = function () {
 					let jsonData = utils.toJson({ baseUrl: baseUrl, data: dataToSave });
 					dataservice.post(url, jsonData).then(function (data) {
 						if (self.__destroyed__) return;
-						if (dataToSave.$merge)
+						if (dataToSave.$merge) {
 							dataToSave.$merge(data, true, true /*only exists*/);
-						resolve(dataToSave); // merged
+							resolve(dataToSave); // merged
+						} else
+							resolve(data); // from server
 					}).catch(function (msg) {
 						if (msg === __blank__)
 							return;
@@ -5817,12 +5859,12 @@ app.modules['std:impl:array'] = function () {
 				let url = `${root}/${routing.dataUrl()}/reload`;
 				let dat = self.$data;
 
-				let mi = args ? modelInfo.get(args.$ModelInfo) : null;
+				let mi = args ? modelInfo.get.call(this.$data, args.$ModelInfo) : null;
 				if (!args && !mi) {
 					// try to get first $ModelInfo
 					let modInfo = this.$data._findRootModelInfo();
 					if (modInfo) {
-						mi = modelInfo.get(modInfo);
+						mi = modelInfo.get.call(this.$data, modInfo);
 					}
 				}
 
@@ -5861,7 +5903,8 @@ app.modules['std:impl:array'] = function () {
 			async $nodirty(callback) {
 				let wasDirty = this.$data.$dirty;
 				await callback();
-				this.$defer(() => this.$data.$setDirty(wasDirty));
+				if (!this.$data) return;
+				this.$defer(() => this.$data ? this.$data.$setDirty(wasDirty) : undefined);
 			},
 			$requery(query) {
 				if (this.inDialog)
@@ -6651,25 +6694,17 @@ app.modules['std:impl:array'] = function () {
 				let self = this,
 					root = window.$$rootUrl,
 					url = `${root}/${routing.dataUrl()}/loadlazy`,
-					selfMi = elem[propName].$ModelInfo,
-					parentMi = elem.$parent.$ModelInfo;
+					selfMi = elem[propName].$ModelInfo;
 
-				// HACK. inherit filter from parent modelInfo
-				/*
-				?????
-				if (parentMi && parentMi.Filter) {
-					if (selfMi)
-						modelInfo.mergeFilter(selfMi.Filter, parentMi.Filter);
-					else
-						selfMi = parentMi;
+				if (!selfMi) {
+					let evData = { elem: elem, prop: propName, modelInfo: null };
+					this.$data.$emit('Model.lazy.init', evData);
+					selfMi = evData.modelInfo; // may be changed
 				}
-				*/
 
-				let mi = modelInfo.get(selfMi);
+				let mi = modelInfo.get.call(self.$data, selfMi);
 				let xQuery = urltools.parseUrlAndQuery(self.$baseUrl, mi);
 				let newUrl = xQuery.url + urltools.makeQueryString(mi);
-				//console.dir(newUrl);
-				//let jsonData = utils.toJson({ baseUrl: urltools.replaceUrlQuery(self.$baseUrl, mi), id: elem.$id, prop: propName });
 				let jsonData = utils.toJson({ baseUrl: newUrl, id: elem.$id, prop: propName });
 
 				return new Promise(function (resolve, reject) {
@@ -6681,7 +6716,7 @@ app.modules['std:impl:array'] = function () {
 					dataservice.post(url, jsonData).then(function (data) {
 						if (self.__destroyed__) return;
 						if (propName in data) {
-							arr.$empty();
+							arr.__empty__();
 							for (let el of data[propName])
 								arr.push(arr.$new(el));
 							let rcName = propName + '.$RowCount';
@@ -6911,11 +6946,11 @@ app.modules['std:impl:array'] = function () {
 				this.$data._fireGlobalPeriodChanged_(period);
 			},
 			__signalAppEvent__(data) {
-				if (this.$data._fireSignalAppEvent_)
+				if (this.$data && this.$data._fireSignalAppEvent_)
 					this.$data._fireSignalAppEvent_(data);
 			},
 			__globalAppEvent__(data) {
-				if (this.$data._fireGlobalAppEvent_)
+				if (this.$data && this.$data._fireGlobalAppEvent_)
 					this.$data._fireGlobalAppEvent_(data);
 			}
 		},

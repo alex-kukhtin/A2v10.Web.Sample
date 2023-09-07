@@ -34,6 +34,8 @@
 @SetNewPassword=Установка пароля
 @InviteEMail=Добро пожаловать!
 @ChangePasswordDisabled=Смена пароля запрещена
+@InviteUserSubject=Приглашение на регистрацию
+@InviteUserBody=Для завершения регистрации перейдите <a href="{0}">по ссылке</a>
 ;
 @Home=Главная
 @Documents=Документы
@@ -146,3 +148,10 @@
 @ErrorAntiForgery=Запрос уже выполнен в другом окне браузера. Страница будет перезагружена
 @IHaveCode=У меня есть код подтверждения
 @AvailableLocales={"uk-UA": 'Украинский',"ru-RU": 'Русский',"en-US": 'Английский',"de-DE": 'Немецкий'}
+;
+@CloseTabsRight=Закрыть вкладки справа
+@CloseOtherTabs=Закрыть остальные вкладки
+@ReopenClosedTab=Открыть закрытую вкладку
+@CloseAllTabs=Закрыть все вкладки
+@OpenTabs=Открытые вкладки
+@RecentlyClosedTabs=Недавно закрытые
