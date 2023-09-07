@@ -198,6 +198,7 @@
     <Content Include="App_application\%40schemas\model-json-schema.json" />
     <Content Include="App_application\%40schemas\app-json-schema.json" />
     <Content Include="App_application\%40schemas\api-model-json-schema.json" />
+    <Content Include="App_application\sample\document\waybill\waybill.xlsx" />
     <None Include="App_application\sample\_files\entity_import_sample.xlsx" />
     <Content Include="css\fonts\A2v10.woff" />
     <Content Include="css\fonts\A2v10.ttf" />
