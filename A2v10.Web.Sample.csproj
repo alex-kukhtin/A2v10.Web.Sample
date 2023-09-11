@@ -69,6 +69,9 @@
     <Content Include="App_application\admin\identity\user\index.template.js" />
     <Content Include="App_application\admin\identity\user\password.template.js" />
     <Content Include="App_application\sample\catalog\product\import.sql" />
+    <Content Include="App_application\sample\_assets\site.css" />
+    <Content Include="App_application\sample\_layout\_body.html" />
+    <Content Include="App_application\sample\_layout\_head.html" />
     <Content Include="App_application\sample\_sql\schemas.sql" />
     <Content Include="App_application\sample\_sql\tables.sql" />
     <Content Include="App_application\sample\_sql\types.sql" />
@@ -83,43 +86,43 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="A2v10.Data.Interfaces, Version=10.0.7332.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\A2v10.Web.Runtime.10.0.7943\lib\net48\A2v10.Data.Interfaces.dll</HintPath>
+      <HintPath>packages\A2v10.Web.Runtime.10.0.7946\lib\net48\A2v10.Data.Interfaces.dll</HintPath>
     </Reference>
-    <Reference Include="A2v10.Infrastructure, Version=10.0.7943.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\A2v10.Web.Runtime.10.0.7943\lib\net48\A2v10.Infrastructure.dll</HintPath>
+    <Reference Include="A2v10.Infrastructure, Version=10.0.7946.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\A2v10.Web.Runtime.10.0.7946\lib\net48\A2v10.Infrastructure.dll</HintPath>
     </Reference>
-    <Reference Include="A2v10.Messaging, Version=10.0.7943.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\A2v10.Web.Runtime.10.0.7943\lib\net48\A2v10.Messaging.dll</HintPath>
+    <Reference Include="A2v10.Messaging, Version=10.0.7946.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\A2v10.Web.Runtime.10.0.7946\lib\net48\A2v10.Messaging.dll</HintPath>
     </Reference>
-    <Reference Include="A2v10.Reports, Version=10.0.7943.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\A2v10.Web.Runtime.10.0.7943\lib\net48\A2v10.Reports.dll</HintPath>
+    <Reference Include="A2v10.Reports, Version=10.0.7946.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\A2v10.Web.Runtime.10.0.7946\lib\net48\A2v10.Reports.dll</HintPath>
     </Reference>
-    <Reference Include="A2v10.Request, Version=10.0.7943.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\A2v10.Web.Runtime.10.0.7943\lib\net48\A2v10.Request.dll</HintPath>
+    <Reference Include="A2v10.Request, Version=10.0.7946.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\A2v10.Web.Runtime.10.0.7946\lib\net48\A2v10.Request.dll</HintPath>
     </Reference>
-    <Reference Include="A2v10.Web.Mvc, Version=10.0.7943.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\A2v10.Web.Runtime.10.0.7943\lib\net48\A2v10.Web.Mvc.dll</HintPath>
+    <Reference Include="A2v10.Web.Mvc, Version=10.0.7946.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\A2v10.Web.Runtime.10.0.7946\lib\net48\A2v10.Web.Mvc.dll</HintPath>
     </Reference>
-    <Reference Include="A2v10.Workflow, Version=10.0.7943.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\A2v10.Web.Runtime.10.0.7943\lib\net48\A2v10.Workflow.dll</HintPath>
+    <Reference Include="A2v10.Workflow, Version=10.0.7946.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\A2v10.Web.Runtime.10.0.7946\lib\net48\A2v10.Workflow.dll</HintPath>
     </Reference>
-    <Reference Include="A2v10.Xaml, Version=10.0.7945.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\A2v10.Web.Runtime.10.0.7943\lib\net48\A2v10.Xaml.dll</HintPath>
+    <Reference Include="A2v10.Xaml, Version=10.0.7946.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\A2v10.Web.Runtime.10.0.7946\lib\net48\A2v10.Xaml.dll</HintPath>
     </Reference>
-    <Reference Include="A2v10.Xaml.Bootstrap, Version=10.0.7943.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\A2v10.Web.Runtime.10.0.7943\lib\net48\A2v10.Xaml.Bootstrap.dll</HintPath>
+    <Reference Include="A2v10.Xaml.Bootstrap, Version=10.0.7946.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\A2v10.Web.Runtime.10.0.7946\lib\net48\A2v10.Xaml.Bootstrap.dll</HintPath>
     </Reference>
-    <Reference Include="A2v10.Xaml.Report, Version=10.0.7943.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\A2v10.Web.Runtime.10.0.7943\lib\net48\A2v10.Xaml.Report.dll</HintPath>
+    <Reference Include="A2v10.Xaml.Report, Version=10.0.7946.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\A2v10.Web.Runtime.10.0.7946\lib\net48\A2v10.Xaml.Report.dll</HintPath>
     </Reference>
-    <Reference Include="A2v10.Xaml.Spreadsheet, Version=10.0.7943.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\A2v10.Web.Runtime.10.0.7943\lib\net48\A2v10.Xaml.Spreadsheet.dll</HintPath>
+    <Reference Include="A2v10.Xaml.Spreadsheet, Version=10.0.7946.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\A2v10.Web.Runtime.10.0.7946\lib\net48\A2v10.Xaml.Spreadsheet.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Extensions.Logging.Abstractions, Version=7.0.0.1, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
       <HintPath>packages\Microsoft.Extensions.Logging.Abstractions.7.0.1\lib\net462\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Web.Infrastructure, Version=2.0.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
-      <HintPath>packages\A2v10.Web.Runtime.10.0.7943\lib\net48\Microsoft.Web.Infrastructure.dll</HintPath>
+      <HintPath>packages\A2v10.Web.Runtime.10.0.7946\lib\net48\Microsoft.Web.Infrastructure.dll</HintPath>
     </Reference>
     <Reference Include="Quartz, Version=3.7.0.0, Culture=neutral, PublicKeyToken=f6b8c98a402cc8a4, processorArchitecture=MSIL">
       <HintPath>packages\Quartz.3.7.0\lib\net472\Quartz.dll</HintPath>
@@ -193,6 +196,7 @@
     <Content Include="Global.asax" />
     <Content Include="localization\default.de.txt" />
     <Content Include="localization\default.en.txt" />
+    <Content Include="localization\default.es.txt" />
     <Content Include="localization\default.pl.txt" />
     <Content Include="localization\default.ru.txt" />
     <Content Include="localization\default.uk.txt" />
@@ -212,6 +216,7 @@
     <Content Include="scripts\d3.min.js" />
     <Content Include="scripts\locale-de.min.js" />
     <Content Include="scripts\locale-en.min.js" />
+    <Content Include="scripts\locale-es.min.js" />
     <Content Include="scripts\locale-pl.min.js" />
     <Content Include="scripts\locale-ru.min.js" />
     <Content Include="scripts\locale-uk.min.js" />
@@ -307,12 +312,12 @@
     <PostBuildEvent>
     </PostBuildEvent>
   </PropertyGroup>
-  <Import Project="packages\A2v10.Web.Runtime.10.0.7943\build\A2v10.Web.Runtime.targets" Condition="Exists('packages\A2v10.Web.Runtime.10.0.7943\build\A2v10.Web.Runtime.targets')" />
+  <Import Project="packages\A2v10.Web.Runtime.10.0.7946\build\A2v10.Web.Runtime.targets" Condition="Exists('packages\A2v10.Web.Runtime.10.0.7946\build\A2v10.Web.Runtime.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('packages\A2v10.Web.Runtime.10.0.7943\build\A2v10.Web.Runtime.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\A2v10.Web.Runtime.10.0.7943\build\A2v10.Web.Runtime.targets'))" />
+    <Error Condition="!Exists('packages\A2v10.Web.Runtime.10.0.7946\build\A2v10.Web.Runtime.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\A2v10.Web.Runtime.10.0.7946\build\A2v10.Web.Runtime.targets'))" />
   </Target>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
