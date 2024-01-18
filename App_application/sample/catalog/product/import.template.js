@@ -11,18 +11,10 @@ define(["require", "exports"], function (require, exports) {
         events: {
             "Model.load": modelLoad,
         },
-        delegates: {
-            uploadFile
-        }
+        delegates: {}
     };
     exports.default = template;
     function modelLoad(root, caller) {
         indexPage = caller;
-    }
-    function uploadFile(result) {
-        this.Done = true;
-        this.Inserted = result.Result.Inserted;
-        this.Updated = result.Result.Updated;
-        indexPage === null || indexPage === void 0 ? void 0 : indexPage.$emit('$product.import.done');
     }
 });

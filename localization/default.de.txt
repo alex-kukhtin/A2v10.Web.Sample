@@ -25,6 +25,7 @@
 @SetPassword=Passwort festlegen
 @Error=Fehler
 @Warning=Warnung
+@Or=or
 ;
 @ResetPassword=Passwortwiederherstellung
 @ResetPasswordBody=Code zur Wiederherstellung des Passworts: <b>{0}</b>
@@ -100,6 +101,7 @@
 @Login=Anmelden
 @UserName=Nutzername
 @LoginPrompt=Systemanmeldung
+@SignInWith=Sign in with
 @RegisterPrompt=Im System registrieren
 @ForgotPrompt=Passwort zurücksetzen
 @ConfirmEMailPrompt=E-mail bestätigen
@@ -122,6 +124,7 @@
 @PasswordLength=das Passwort muss mindestens 6 Zeichen lang sein
 @InvalidLoginError=Ungültige E-Mail oder Passwort
 @InvalidEMailError=Ungültige E-Mail
+@InvalidOldPassword=Ungültiges altes Passwort
 @UserLockuotError=Der Benutzer wurde gesperrt.\nIn wenigen Minuten erneut versuchen
 @EmailNotConfirmed=Eine E-Mail wurde nicht bestätigt. Vielleicht ist die Mail in Spam gelandet?
 @AntiForgery=Die Anfrage konnte nicht bearbeitet werden.\nAktualisieren Sie die Seite und versuchen Sie es erneut.\nWahrscheinlich sind dem Browser keine Cookies erlaubt.
@@ -148,9 +151,10 @@
 @IHaveCode=Ich habe einen Bestätigungscode
 @AvailableLocales={"uk-UA": "Ukrainisch","ru-RU": "Russisch","en-US": "Englisch","de-DE": "Deutsche", "es-ES": "Spanisch"}
 ;
-@CloseTabsRight=Close tabs to the right
-@CloseOtherTabs=Close other tabs
-@ReopenClosedTab=Reopen closed tab
-@CloseAllTabs=Close all tabs
-@OpenTabs=Open tabs
-@RecentlyClosedTabs=Recently closed
+@CloseTabsRight=Tabs auf der rechten Seite schließen
+@CloseOtherTabs=Andere Tabs schließen
+@ReopenClosedTab=Geschlossenes Tab wieder öffnen
+@CloseAllTabs=Alle Tabs schließen
+@OpenTabs=Tabs öffnen
+@RecentlyClosedTabs=Kürzlich geschlossene Tabs
+;

@@ -85,9 +85,9 @@ app.modules['std:locale'] = function () {
 	return window.$$locale;
 };
 
-// Copyright © 2015-2018 Alex Kukhtin. All rights reserved.
+// Copyright © 2015-2024 Oleksandr Kukhtin. All rights reserved.
 
-// 20181120-7363
+// 20240111-7956
 // platform/polyfills.js
 
 
@@ -132,10 +132,20 @@ app.modules['std:locale'] = function () {
 
 (function (date) {
 
+	let td = new Date(0, 0, 1, 0, 0, 0, 0);
+
 	date.isZero = date.isZero || function () {
-		let td = new Date(0, 0, 1, 0, 0, 0, 0);
-		td.setHours(0, -td.getTimezoneOffset(), 0, 0);
 		return this.getTime() === td.getTime();
+	};
+
+	date.toJSON = function (key) {
+		let nd = new Date(this);
+		let ds = 0;
+		if (nd.getFullYear() < 1925) {
+			ds = -4;
+		}
+		nd.setHours(nd.getHours(), nd.getMinutes() - nd.getTimezoneOffset(), nd.getSeconds() - ds, 0);
+		return nd.toISOString().replace('Z', '');
 	};
 
 })(Date.prototype);
@@ -143,9 +153,9 @@ app.modules['std:locale'] = function () {
 
 
 
-// Copyright © 2015-2020 Alex Kukhtin. All rights reserved.
+// Copyright © 2015-2023 Oleksandr Kukhtin. All rights reserved.
 
-/*20200722-7691*/
+/*20231005-7950*/
 /* platform/webvue.js */
 
 (function () {
@@ -175,33 +185,39 @@ app.modules['std:locale'] = function () {
 
 })();
 
-// Copyright © 2015-2023 Oleksandr Kukhtin. All rights reserved.
+// Copyright © 2015-2024 Oleksandr Kukhtin. All rights reserved.
 
-// 20230814-7943
+// 20240117-7957
 // services/utils.js
 
 app.modules['std:utils'] = function () {
 
 	const locale = require('std:locale');
 	const platform = require('std:platform');
-	const dateLocale = locale.$Locale;
-	const numLocale = locale.$Locale;
+	const dateLocale = locale.$DateLocale || locale.$Locale;
+	const numLocale = locale.$NumberLocale || locale.$Locale;
+
 	const _2digit = '2-digit';
 
-	const dateOptsDate = { timeZone: 'UTC', year: 'numeric', month: _2digit, day: _2digit };
-	const dateOptsTime = { timeZone: 'UTC', hour: _2digit, minute: _2digit };
+	const dateOptsDate = { year: 'numeric', month: _2digit, day: _2digit };
+	const dateOptsTime = { hour: _2digit, minute: _2digit };
 	
 	const formatDate = new Intl.DateTimeFormat(dateLocale, dateOptsDate).format;
 	const formatTime = new Intl.DateTimeFormat(dateLocale, dateOptsTime).format;
 
 	const currencyFormat = new Intl.NumberFormat(numLocale, { minimumFractionDigits: 2, maximumFractionDigits: 6, useGrouping: true }).format;
-	const numberFormat = new Intl.NumberFormat(numLocale, { minimumFractionDigits: 0, maximumFractionDigits: 6, useGrouping: true }).format;
+	const nf = new Intl.NumberFormat(numLocale, { minimumFractionDigits: 0, maximumFractionDigits: 6, useGrouping: true });
+	const numberFormat = nf.format;
 
-	const utcdatRegEx = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/;
+	const parts = nf.formatToParts(1000.5);
+	const decimalSymbol = parts[3].value;
+	const groupingSymbol = parts[1].value;
+
+	const utcdatRegEx = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?$/;
 
 	let numFormatCache = {};
 
-	const zeroDate = new Date(Date.UTC(0, 0, 1, 0, 0, 0, 0));
+	const zeroDate = new Date(0, 0, 1, 0, 0, 0, 0);
 
 	return {
 		isArray: Array.isArray,
@@ -215,16 +231,16 @@ app.modules['std:utils'] = function () {
 		notBlank,
 		toJson,
 		fromJson: JSON.parse,
-		isPrimitiveCtor: isPrimitiveCtor,
+		isPrimitiveCtor,
 		isDateCtor,
 		isEmptyObject,
 		defineProperty: defProperty,
 		eval: evaluate,
-		simpleEval: simpleEval,
+		simpleEval,
 		format: format,
 		convertToString,
 		toNumber,
-		parse: parse,
+		parse,
 		getStringId,
 		isEqual,
 		ensureType,
@@ -249,7 +265,8 @@ app.modules['std:utils'] = function () {
 			minDate: dateCreate(1901, 1, 1),
 			maxDate: dateCreate(2999, 12, 31),
 			fromDays: fromDays,
-			parseTime: timeParse
+			parseTime: timeParse,
+			fromServer: dateFromServer
 		},
 		text: {
 			contains: textContains,
@@ -419,7 +436,7 @@ app.modules['std:utils'] = function () {
 		for (let i = 0; i < ps.length; i++) {
 			let pi = ps[i];
 			if (!(pi in r))
-				throw new Error(`Property '${pi}' not found in ${r.constructor.name} object`);
+				return '';
 			r = r[ps[i]];
 		}
 		return r;
@@ -447,6 +464,8 @@ app.modules['std:utils'] = function () {
 			case 'Currency':
 			case 'Number':
 				return toNumber(obj);
+			case 'Percent':
+				return toNumber(obj) / 100.0;
 			case 'Date':
 				return dateParse(obj);
 		}
@@ -545,7 +564,7 @@ app.modules['std:utils'] = function () {
 				if (dateIsZero(obj))
 					return '';
 				if (dateHasTime(obj))
-					return obj.toISOString();
+					return obj.toJSON();
 				return '' + obj.getFullYear() + pad2(obj.getMonth() + 1) + pad2(obj.getDate());
 			case 'Time':
 				if (!isDate(obj)) {
@@ -582,6 +601,12 @@ app.modules['std:utils'] = function () {
 					return '';
 
 				return formatNumber(obj, opts.format);
+			case 'Percent':
+				if (!isNumber(obj))
+					obj = toNumber(obj);
+				if (opts.hideZeros && obj === 0)
+					return '';
+				return formatNumber((+obj) * 100, opts.format) + '%';
 			default:
 				console.error(`Invalid DataType for utils.format (${dataType})`);
 		}
@@ -607,20 +632,23 @@ app.modules['std:utils'] = function () {
 	}
 
 	function toNumber(val) {
-		if (isString(val))
-			val = val.replace(/\s/g, '').replace(',', '.');
+		if (isString(val)) {
+			val = val.replaceAll(groupingSymbol, '');
+			val = val.replace(/\s|%/g, '').replace(',', '.');
+		}
 		return isFinite(val) ? +val : 0;
 	}
 
 	function dateToday() {
 		let td = new Date();
-		return new Date(Date.UTC(td.getFullYear(), td.getMonth(), td.getDate(), 0, 0, 0, 0));
+		td.setHours(0, 0, 0, 0);
+		return td;
 	}
 
 	function dateNow(second) {
 		let td = new Date();
 		let sec = second ? td.getSeconds() : 0;
-		return new Date(Date.UTC(td.getFullYear(), td.getMonth(), td.getDate(), td.getHours(), td.getMinutes(), sec, 0));
+		return new Date(td.getFullYear(), td.getMonth(), td.getDate(), td.getHours(), td.getMinutes(), sec, 0);
 	}
 
 	function dateZero() {
@@ -632,19 +660,19 @@ app.modules['std:utils'] = function () {
 		if (isDate(str)) return str;
 
 		if (utcdatRegEx.test(str)) {
-			return new Date(str);
+			return dateFromServer(str);
 		}
 
 		let dt;
 		if (str.length === 8) {
 			dt = new Date(+str.substring(0, 4), +str.substring(4, 6) - 1, +str.substring(6, 8), 0, 0, 0, 0);
 		} else if (str.startsWith('\"\\/\"')) {
-			dt = new Date(str.substring(4, str.length - 4));
+			dt = dateFromServer(str.substring(4, str.length - 4));
 		} else {
-			dt = new Date(str);
+			dt = dateFromServer(str);
 		}
 		if (!isNaN(dt.getTime())) {
-			return new Date(Date.UTC(dt.getFullYear(), dt.getMonth(), dt.getDate(), 0, 0, 0, 0));
+			return new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(), 0, 0, 0, 0);
 		}
 		return str;
 	}
@@ -652,7 +680,7 @@ app.modules['std:utils'] = function () {
 	function string2Date(str) {
 		try {
 			let dt = new Date(str);
-			dt.setUTCHours(0, 0, 0, 0);
+			dt.setHours(0, 0, 0, 0);
 			return dt;
 		} catch (err) {
 			return str;
@@ -713,7 +741,7 @@ app.modules['std:utils'] = function () {
 			}
 			return +y;
 		};
-		let td = new Date(Date.UTC(+normalizeYear(seg[2]), +((seg[1] ? seg[1] : 1) - 1), +seg[0], 0, 0, 0, 0));
+		let td = new Date(+normalizeYear(seg[2]), +((seg[1] ? seg[1] : 1) - 1), +seg[0], 0, 0, 0, 0);
 		if (isNaN(td.getDate()))
 			return dateZero();
 		return td;
@@ -733,22 +761,29 @@ app.modules['std:utils'] = function () {
 
 	function dateHasTime(d1) {
 		if (!isDate(d1)) return false;
-		return d1.getUTCHours() !== 0 || d1.getUTCMinutes() !== 0 && d1.getUTCSeconds() !== 0;
+		return d1.getHours() !== 0 || d1.getMinutes() !== 0 && d1.getSeconds() !== 0;
 	}
 
 	function endOfMonth(dt) {
-		var dte = new Date(Date.UTC(dt.getFullYear(), dt.getMonth() + 1, 0, 0, 0, 0));
+		var dte = new Date(dt.getFullYear(), dt.getMonth() + 1, 0, 0, 0, 0);
 		return dte;
 	}
 
 	function dateCreate(year, month, day) {
-		let dt = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+		let dt = new Date(year, month - 1, day, 0, 0, 0, 0);
 		return dt;
 	}
 
 	function dateCreateTime(year, month, day, hour, min, sec) {
-		let dt = new Date(Date.UTC(year, month - 1, day, hour || 0, min || 0, sec || 0, 0));
+		let dt = new Date(year, month - 1, day, hour || 0, min || 0, sec || 0, 0);
 		return dt;
+	}
+
+	function dateFromServer(src) {
+		if (isDate(src))
+			return src;
+		let dx = new Date(src);
+		return dx;
 	}
 
 	function dateDiff(unit, d1, d2) {
@@ -792,7 +827,7 @@ app.modules['std:utils'] = function () {
 	}
 
 	function fromDays(days) {
-		return new Date(Date.UTC(1900, 0, days, 0, 0, 0, 0));
+		return new Date(1900, 0, days, 0, 0, 0, 0);
 	}
 
 	function dateAdd(dt, nm, unit) {
@@ -801,18 +836,19 @@ app.modules['std:utils'] = function () {
 		var du = 0;
 		switch (unit) {
 			case 'year':
-				return new Date(Date.UTC(dt.getFullYear() + nm, dt.getMonth(), dt.getDate(), 0, 0, 0, 0));
+				return new Date(dt.getFullYear() + nm, dt.getMonth(), dt.getDate(), 0, 0, 0, 0);
 			case 'month':
 				// save day of month
 				let newMonth = dt.getMonth() + nm;
 				let day = dt.getDate();
-				var ldm = new Date(Date.UTC(dt.getFullYear(), newMonth + 1, 0, 0, 0)).getDate();
+				var ldm = new Date(dt.getFullYear(), newMonth + 1, 0, 0, 0).getDate();
 				if (day > ldm)
 					day = ldm;
-				var dtx = new Date(Date.UTC(dt.getFullYear(), newMonth, day, 0, 0, 0));
+				var dtx = new Date(dt.getFullYear(), newMonth, day, 0, 0, 0);
 				return dtx;
 			case 'day':
-				du = 1000 * 60 * 60 * 24;
+				// Daylight time!!!
+				return new Date(dt.getFullYear(), dt.getMonth(), dt.getDate() + nm, 0, 0, 0, 0);
 				break;
 			case 'hour':
 				du = 1000 * 60 * 60;
@@ -954,10 +990,10 @@ app.modules['std:utils'] = function () {
 
 	function debounce(fn, timeout) {
 		let timerId = null;
-		return function () {
+		return function (arg) {
 			clearTimeout(timerId);
 			timerId = setTimeout(() => {
-				fn.call();
+				fn.call(undefined, arg);
 			}, timeout);
 		};
 	}
@@ -970,7 +1006,7 @@ app.modules['std:utils'] = function () {
 
 	function currencyRound(n, digits) {
 		if (isNaN(n))
-			return Nan;
+			return NaN;
 		if (!isDefined(digits))
 			digits = 2;
 		let m = false;
@@ -1926,9 +1962,9 @@ app.modules['std:barcode'] = function () {
 	}
 };
 
-// Copyright © 2015-2022 Alex Kukhtin. All rights reserved.
+// Copyright © 2015-2023 Alex Kukhtin. All rights reserved.
 
-// 20221124-7907
+// 20231005-7950
 /* platform/routex.js */
 
 (function () {
@@ -2087,11 +2123,16 @@ app.modules['std:barcode'] = function () {
 		return replaceUrlSearch(url, urlTools.makeQueryString(query));
 	}
 
+	function replaceBrowseUrl(newUrl) {
+		window.history.replaceState(null, null, newUrl);
+	}
+
 	store.parseQueryString = urlTools.parseQueryString;
 	store.makeQueryString = urlTools.makeQueryString;
 	store.replaceUrlSearch = replaceUrlSearch;
 	store.replaceUrlQuery = replaceUrlQuery;
 	store.makeBackUrl = makeBackUrl;
+	store.replaceBrowseUrl = replaceBrowseUrl;
 
 	app.components['std:store'] = store;
 })();
@@ -3595,7 +3636,8 @@ app.modules['std:validators'] = function () {
 
 	return {
 		validate: validateItem,
-		removeWeak
+		removeWeak,
+		revalidate
 	};
 
 	function validateStd(rule, val) {
@@ -3621,6 +3663,35 @@ app.modules['std:validators'] = function () {
 
 	function removeWeak() {
 		validateMap = new WeakMap();
+	}
+
+	function revalidate(item, key, templ) {
+		if (!validateMap || !key || !templ || !templ.validators) return;
+		let rule = templ.validators[key];
+		if (!rule) return;
+
+		function doIt(rule) {
+			let elem = validateMap.get(rule);
+			if (!elem)
+				return;
+			if (elem.has(item)) {
+				let xval = elem.get(item);
+				if (xval) {
+					xval.val = undefined;
+					xval.result = null;
+				}
+			}
+		}
+
+		if (utils.isArray(rule)) {
+			rule.forEach(r => {
+				if (utils.isObject(r) && validateMap.has(r)) {
+					doIt(r);
+				}
+			});
+		} else if (utils.isObject(rule) && validateMap.has(rule)) {
+			doIt(rule);
+		}
 	}
 
 	function addToWeak(rule, item, val) {
@@ -3703,10 +3774,12 @@ app.modules['std:validators'] = function () {
 						let dm = { severity: sev, msg: rule.msg };
 						let nu = false;
 						if (utils.isString(result)) {
-							dm.msg = result;
-							valRes.result = dm;
-							retval.push(dm);
-							nu = true;
+							if (result) {
+								dm.msg = result;
+								valRes.result = dm;
+								retval.push(dm);
+								nu = true;
+							}
 						} else if (!result) {
 							retval.push(dm);
 							valRes.result = dm;
@@ -3755,7 +3828,7 @@ app.modules['std:validators'] = function () {
 
 // Copyright © 2015-2023 Oleksandr Kukhtin. All rights reserved.
 
-/*20230807-7941*/
+/*20230922-7948*/
 /* services/impl/array.js */
 
 app.modules['std:impl:array'] = function () {
@@ -3806,6 +3879,16 @@ app.modules['std:impl:array'] = function () {
 			}
 			return null;
 		}
+
+		/* generator */
+		arr.$allItems = function* () {
+			for (let i = 0; i < this.length; i++) {
+				let el = this[i];
+				yield el;
+				if ('$items' in el)
+					yield* el.$items.$allItems();
+			}
+		};
 
 		arr.$sort = function (compare) {
 			this.sort(compare);
@@ -4253,7 +4336,7 @@ app.modules['std:impl:array'] = function () {
 				break;
 			case Date:
 				let srcval = source[prop] || null;
-				shadow[prop] = srcval ? new Date(srcval) : utils.date.zero();
+				shadow[prop] = srcval ? utils.date.fromServer(srcval) : utils.date.zero();
 				break;
 			case platform.File:
 			case Object:
@@ -5110,6 +5193,14 @@ app.modules['std:impl:array'] = function () {
 		return errs.length ? errs : null;
 	}
 
+	function revalidateItem(itm, valname) {
+		this.$defer(() => {
+			validators.revalidate(itm, valname, this.$template);
+			this._needValidate_ = true;
+			this._validateAll_(false);
+		});
+	}
+
 	function forceValidateAll() {
 		let me = this;
 		me._needValidate_ = true;
@@ -5298,8 +5389,9 @@ app.modules['std:impl:array'] = function () {
 						let dt = src[prop];
 						if (!dt)
 							platform.set(this, prop, utils.date.zero());
-						else
-							platform.set(this, prop, new Date(src[prop]));
+						else {
+							platform.set(this, prop, utils.date.fromServer(src[prop]));
+						}
 					} else if (utils.isPrimitiveCtor(ctor)) {
 						platform.set(this, prop, src[prop]);
 					} else {
@@ -5341,6 +5433,7 @@ app.modules['std:impl:array'] = function () {
 		root.prototype._validate_ = validate;
 		root.prototype._validateAll_ = validateAll;
 		root.prototype.$forceValidate = forceValidateAll;
+		root.prototype.$revalidate = revalidateItem;
 		root.prototype.$hasErrors = hasErrors;
 		root.prototype.$destroy = destroyRoot;
 		// props cache for t.construct
@@ -5433,9 +5526,9 @@ app.modules['std:impl:array'] = function () {
 
 
 
-// Copyright © 2015-2023 Oleksandr Kukhtin. All rights reserved.
+// Copyright © 2015-2024 Oleksandr Kukhtin. All rights reserved.
 
-/*20230830-7947*/
+/*20240107-7954*/
 // controllers/base.js
 
 (function () {
@@ -5876,7 +5969,7 @@ app.modules['std:impl:array'] = function () {
 						// special element -> use url
 						dataToQuery.baseUrl = urltools.replaceUrlQuery(self.$baseUrl, dat.Query);
 						let newUrl = urltools.replaceUrlQuery(null/*current*/, dat.Query);
-						window.history.replaceState(null, null, newUrl);
+						store.replaceBrowseUrl(newUrl);
 					}
 					let jsonData = utils.toJson(dataToQuery);
 					dataservice.post(url, jsonData).then(function (data) {
@@ -6009,7 +6102,7 @@ app.modules['std:impl:array'] = function () {
 				}
 			},
 
-			$file(url, arg, opts) {
+			$file(url, arg, opts, dat) {
 				eventBus.$emit('closeAllPopups');
 				const root = window.$$rootUrl;
 				let id = arg;
@@ -6020,7 +6113,7 @@ app.modules['std:impl:array'] = function () {
 						token = arg[arg._meta_.$token];
 				}
 				let fileUrl = urltools.combine(root, '_file', url, id);
-				let qry = {};
+				let qry = dat || {};
 				let action = (opts || {}).action;
 				if (token)
 					qry.token = token;
@@ -6314,7 +6407,11 @@ app.modules['std:impl:array'] = function () {
 							});
 						case 'append':
 							if (argIsNotAnArray()) return;
-							return __runDialog(url, 0, query, (result) => { arg.$append(result); });
+							return __runDialog(url, 0, query, (result) => {
+								arg.$append(result);
+								if (reloadAfter)
+									that.$reload();
+							});
 						case 'browse':
 							if (!utils.isObject(arg)) {
 								console.error(`$dialog.${command}. The argument is not an object`);
@@ -6346,28 +6443,23 @@ app.modules['std:impl:array'] = function () {
 						case 'edit':
 							if (argIsNotAnObject()) return;
 							return __runDialog(url, arg, query, (result) => {
-								if (result === 'reload')
-									that.$reload();
-								else if (arg.$merge && utils.isObjectExact(result)) {
+								if (arg.$merge && utils.isObjectExact(result))
 									arg.$merge(result);
-									if (reloadAfter)
-										that.$reload();
-								}
+								if (result === 'reload' || reloadAfter)
+									that.$reload();
 							});
 						case 'copy':
 							if (argIsNotAnObject()) return;
 							let arr = arg.$parent;
 							return __runDialog(url, arg, query, (result) => {
 								arr.$append(result);
-								if (reloadAfter) {
+								if (reloadAfter)
 									that.$reload();
-								}
 							});
 						default: // simple show dialog
 							return __runDialog(url, arg, query, (r) => {
-								if (reloadAfter) {
+								if (reloadAfter)
 									that.$reload();
-								}
 							});
 					}
 				}
@@ -6394,7 +6486,7 @@ app.modules['std:impl:array'] = function () {
 						id = utils.getStringId(arg);
 					const self = this;
 					const root = window.$$rootUrl;
-					let newurl = url ? urltools.combine('/_export', url, id) : self.$baseUrl.replace('/_page/', '/_export/');
+					let newurl = url ? urltools.combine('/_export', url, id) : self.$baseUrl.split('?')[0].replace('/_page/', '/_export/');
 					newurl = urltools.combine(root, newurl) + urltools.makeQueryString(dat);
 					window.location = newurl; // to display errors
 				};

@@ -11,7 +11,6 @@ const template: Template = {
 		"Model.load": modelLoad,
 	},
 	delegates: {
-		uploadFile
 	}
 }
 
@@ -20,11 +19,3 @@ export default template;
 function modelLoad(root, caller) {
 	indexPage = caller;
 }
-
-function uploadFile(result) {
-	this.Done = true;
-	this.Inserted = result.Result.Inserted;
-	this.Updated = result.Result.Updated;
-	indexPage?.$emit('$product.import.done');
-}
-
